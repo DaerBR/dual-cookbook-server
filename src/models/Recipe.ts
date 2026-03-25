@@ -1,11 +1,5 @@
 import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 
-/** Ingredient line item */
-export interface IIngredientLine {
-  item: string;
-  quantity?: string;
-}
-
 /**
  * Full recipe document stored in MongoDB.
  */
@@ -13,10 +7,9 @@ export interface IRecipe extends Document {
   name: string;
   category: Types.ObjectId;
   description?: string;
-  ingredients: IIngredientLine[];
+  /** Plain text or HTML (e.g. from a rich text editor on the FE). */
+  ingredients: string;
   instructions: string;
-  prepTimeMinutes?: number;
-  cookTimeMinutes?: number;
   servings?: number;
   notes?: string;
   createdBy: Types.ObjectId;
@@ -35,23 +28,13 @@ export interface IRecipeTableRow {
   updatedAt: Date;
 }
 
-const ingredientLineSchema = new Schema<IIngredientLine>(
-  {
-    item: { type: String, required: true, trim: true },
-    quantity: { type: String, trim: true },
-  },
-  { _id: false },
-);
-
 const recipeSchema = new Schema<IRecipe>(
   {
     name: { type: String, required: true, trim: true },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     description: { type: String, trim: true },
-    ingredients: { type: [ingredientLineSchema], default: [] },
+    ingredients: { type: String, default: '' },
     instructions: { type: String, required: true, trim: true },
-    prepTimeMinutes: { type: Number, min: 0 },
-    cookTimeMinutes: { type: Number, min: 0 },
     servings: { type: Number, min: 1 },
     notes: { type: String, trim: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'users', required: true },

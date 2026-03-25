@@ -405,13 +405,6 @@ export function getOpenApiDefinition(): Record<string, unknown> {
             pagination: { $ref: '#/components/schemas/Pagination' },
           },
         },
-        IngredientLine: {
-          type: 'object',
-          properties: {
-            item: { type: 'string' },
-            quantity: { type: 'string' },
-          },
-        },
         Recipe: {
           type: 'object',
           properties: {
@@ -420,12 +413,10 @@ export function getOpenApiDefinition(): Record<string, unknown> {
             category: { type: 'string', description: 'Category ObjectId or populated object' },
             description: { type: 'string' },
             ingredients: {
-              type: 'array',
-              items: { $ref: '#/components/schemas/IngredientLine' },
+              type: 'string',
+              description: 'Plain text or HTML (e.g. rich text editor)',
             },
             instructions: { type: 'string' },
-            prepTimeMinutes: { type: 'integer' },
-            cookTimeMinutes: { type: 'integer' },
             servings: { type: 'integer' },
             notes: { type: 'string' },
             createdBy: { type: 'string' },
@@ -467,12 +458,10 @@ export function getOpenApiDefinition(): Record<string, unknown> {
             category: { type: 'string', description: 'Category ObjectId' },
             description: { type: 'string' },
             ingredients: {
-              type: 'array',
-              items: { $ref: '#/components/schemas/IngredientLine' },
+              type: 'string',
+              description: 'Optional; plain text or HTML. Defaults to empty string.',
             },
             instructions: { type: 'string' },
-            prepTimeMinutes: { type: 'integer' },
-            cookTimeMinutes: { type: 'integer' },
             servings: { type: 'integer' },
             notes: { type: 'string' },
           },
@@ -485,12 +474,10 @@ export function getOpenApiDefinition(): Record<string, unknown> {
             category: { type: 'string' },
             description: { type: 'string' },
             ingredients: {
-              type: 'array',
-              items: { $ref: '#/components/schemas/IngredientLine' },
+              type: 'string',
+              description: 'Plain text or HTML',
             },
             instructions: { type: 'string' },
-            prepTimeMinutes: { type: 'integer' },
-            cookTimeMinutes: { type: 'integer' },
             servings: { type: 'integer' },
             notes: { type: 'string' },
           },

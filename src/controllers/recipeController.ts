@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
-import type { IIngredientLine } from '../models/Recipe';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
 
@@ -35,16 +34,18 @@ export async function createRecipe(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const ingredients = normalizeIngredients(body.ingredients);
+  const ingredientsResult = parseIngredientsField(body.ingredients, { required: false });
+  if (!ingredientsResult.ok) {
+    res.status(400).json({ error: ingredientsResult.error });
+    return;
+  }
 
   const doc = await Recipe.create({
     name: name.trim(),
     category: categoryId,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
-    ingredients,
+    ingredients: ingredientsResult.value,
     instructions: instructions.trim(),
-    prepTimeMinutes: coerceOptionalNumber(body.prepTimeMinutes),
-    cookTimeMinutes: coerceOptionalNumber(body.cookTimeMinutes),
     servings: coerceOptionalNumber(body.servings),
     notes: typeof body.notes === 'string' ? body.notes.trim() : undefined,
     createdBy: req.user.id,
@@ -93,13 +94,12 @@ export async function updateRecipe(req: Request, res: Response): Promise<void> {
     update.instructions = body.instructions.trim();
   }
   if (body.ingredients !== undefined) {
-    update.ingredients = normalizeIngredients(body.ingredients);
-  }
-  if (body.prepTimeMinutes !== undefined) {
-    update.prepTimeMinutes = coerceOptionalNumber(body.prepTimeMinutes);
-  }
-  if (body.cookTimeMinutes !== undefined) {
-    update.cookTimeMinutes = coerceOptionalNumber(body.cookTimeMinutes);
+    const ingredientsResult = parseIngredientsField(body.ingredients, { required: true });
+    if (!ingredientsResult.ok) {
+      res.status(400).json({ error: ingredientsResult.error });
+      return;
+    }
+    update.ingredients = ingredientsResult.value;
   }
   if (body.servings !== undefined) {
     update.servings = coerceOptionalNumber(body.servings);
@@ -185,27 +185,23 @@ export async function listRecipesTable(req: Request, res: Response): Promise<voi
   });
 }
 
-function normalizeIngredients(raw: unknown): IIngredientLine[] {
+type ParseIngredientsOk = { ok: true; value: string };
+type ParseIngredientsErr = { ok: false; error: string };
+
+function parseIngredientsField(
+  raw: unknown,
+  opts: { required: boolean },
+): ParseIngredientsOk | ParseIngredientsErr {
   if (raw === undefined || raw === null) {
-    return [];
-  }
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  const out: IIngredientLine[] = [];
-  for (const line of raw) {
-    if (line && typeof line === 'object' && 'item' in line) {
-      const item = (line as { item?: unknown }).item;
-      const quantity = (line as { quantity?: unknown }).quantity;
-      if (typeof item === 'string' && item.trim()) {
-        out.push({
-          item: item.trim(),
-          quantity: typeof quantity === 'string' && quantity.trim() ? quantity.trim() : undefined,
-        });
-      }
+    if (opts.required) {
+      return { ok: false, error: 'ingredients must be a string' };
     }
+    return { ok: true, value: '' };
   }
-  return out;
+  if (typeof raw !== 'string') {
+    return { ok: false, error: 'ingredients must be a string' };
+  }
+  return { ok: true, value: raw };
 }
 
 function coerceOptionalNumber(value: unknown): number | undefined {
