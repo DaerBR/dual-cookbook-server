@@ -3,8 +3,9 @@ import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
+import { coerceOptionalNumber, escapeRegex, parseIngredientsField } from './utils';
 
-export async function createRecipe(req: Request, res: Response): Promise<void> {
+export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -52,9 +53,9 @@ export async function createRecipe(req: Request, res: Response): Promise<void> {
   });
 
   res.status(201).json(doc);
-}
+};
 
-export async function updateRecipe(req: Request, res: Response): Promise<void> {
+export const updateRecipe = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
     res.status(400).json({ error: 'Invalid recipe id' });
@@ -104,6 +105,7 @@ export async function updateRecipe(req: Request, res: Response): Promise<void> {
   if (body.servings !== undefined) {
     update.servings = coerceOptionalNumber(body.servings);
   }
+
   if (body.notes !== undefined) {
     update.notes = typeof body.notes === 'string' ? body.notes.trim() : '';
   }
@@ -121,9 +123,9 @@ export async function updateRecipe(req: Request, res: Response): Promise<void> {
     return;
   }
   res.json(doc);
-}
+};
 
-export async function deleteRecipe(req: Request, res: Response): Promise<void> {
+export const deleteRecipe = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
     res.status(400).json({ error: 'Invalid recipe id' });
@@ -135,9 +137,9 @@ export async function deleteRecipe(req: Request, res: Response): Promise<void> {
     return;
   }
   res.status(204).send();
-}
+};
 
-export async function getRecipeById(req: Request, res: Response): Promise<void> {
+export const getRecipeById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
     res.status(400).json({ error: 'Invalid recipe id' });
@@ -149,9 +151,9 @@ export async function getRecipeById(req: Request, res: Response): Promise<void> 
     return;
   }
   res.json(doc);
-}
+};
 
-export async function listRecipesTable(req: Request, res: Response): Promise<void> {
+export const listRecipesTable = async (req: Request, res: Response): Promise<void> => {
   const { page, limit, skip } = parsePagination(req.query);
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
   const categoryFilter = typeof req.query.category === 'string' ? req.query.category.trim() : '';
@@ -183,38 +185,4 @@ export async function listRecipesTable(req: Request, res: Response): Promise<voi
     data: rows,
     pagination: buildPaginationMeta(page, limit, total),
   });
-}
-
-type ParseIngredientsOk = { ok: true; value: string };
-type ParseIngredientsErr = { ok: false; error: string };
-
-function parseIngredientsField(
-  raw: unknown,
-  opts: { required: boolean },
-): ParseIngredientsOk | ParseIngredientsErr {
-  if (raw === undefined || raw === null) {
-    if (opts.required) {
-      return { ok: false, error: 'ingredients must be a string' };
-    }
-    return { ok: true, value: '' };
-  }
-  if (typeof raw !== 'string') {
-    return { ok: false, error: 'ingredients must be a string' };
-  }
-  return { ok: true, value: raw };
-}
-
-function coerceOptionalNumber(value: unknown): number | undefined {
-  if (value === undefined || value === null || value === '') {
-    return undefined;
-  }
-  const n = typeof value === 'number' ? value : parseInt(String(value), 10);
-  if (Number.isNaN(n)) {
-    return undefined;
-  }
-  return n;
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+};

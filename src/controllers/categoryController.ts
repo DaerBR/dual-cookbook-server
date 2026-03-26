@@ -3,8 +3,9 @@ import { Category } from '../models/Category';
 import { Recipe } from '../models/Recipe';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
+import { escapeRegex, isDuplicateKeyError } from './utils';
 
-export async function createCategory(req: Request, res: Response): Promise<void> {
+export const createCategory = async (req: Request, res: Response): Promise<void> => {
   const { name } = req.body as { name?: string };
   if (!name || typeof name !== 'string' || !name.trim()) {
     res.status(400).json({ error: 'name is required' });
@@ -20,9 +21,9 @@ export async function createCategory(req: Request, res: Response): Promise<void>
     }
     throw err;
   }
-}
+};
 
-export async function updateCategory(req: Request, res: Response): Promise<void> {
+export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
     res.status(400).json({ error: 'Invalid category id' });
@@ -51,9 +52,9 @@ export async function updateCategory(req: Request, res: Response): Promise<void>
     }
     throw err;
   }
-}
+};
 
-export async function listCategoriesPaginated(req: Request, res: Response): Promise<void> {
+export const listCategoriesPaginated = async (req: Request, res: Response): Promise<void> => {
   const { page, limit, skip } = parsePagination(req.query);
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
@@ -70,14 +71,14 @@ export async function listCategoriesPaginated(req: Request, res: Response): Prom
     data,
     pagination: buildPaginationMeta(page, limit, total),
   });
-}
+};
 
-export async function listAllCategories(_req: Request, res: Response): Promise<void> {
+export const listAllCategories = async (_req: Request, res: Response): Promise<void> => {
   const data = await Category.find().sort({ name: 1 }).lean();
   res.json(data);
-}
+};
 
-export async function deleteCategory(req: Request, res: Response): Promise<void> {
+export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
     res.status(400).json({ error: 'Invalid category id' });
@@ -99,12 +100,4 @@ export async function deleteCategory(req: Request, res: Response): Promise<void>
     return;
   }
   res.status(204).send();
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function isDuplicateKeyError(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000;
-}
+};

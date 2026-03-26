@@ -1,6 +1,6 @@
 import { getEnv } from './env';
 
-const DEFAULT_ALLOWED = ['13daer@gmail.com', 'i.s.gavrylenko@gmail.com'] as const;
+const DEFAULT_ALLOWED = ['13daer@gmail.com', 'i.s.gaponova@gmail.com'] as const;
 
 /**
  * Returns lowercased allowed Google account emails (family whitelist).
