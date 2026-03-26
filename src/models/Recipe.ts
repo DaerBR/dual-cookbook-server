@@ -1,5 +1,11 @@
 import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 
+/** Stored after Cloudinary upload (needed for delete / replace). */
+export interface IRecipeImage {
+  publicId: string;
+  secureUrl: string;
+}
+
 /**
  * Full recipe document stored in MongoDB.
  */
@@ -11,6 +17,7 @@ export interface IRecipe extends Document {
   ingredients: string;
   instructions: string;
   notes?: string;
+  recipeImage?: IRecipeImage;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +34,14 @@ export interface IRecipeTableRow {
   updatedAt: Date;
 }
 
+const recipeImageSchema = new Schema<IRecipeImage>(
+  {
+    publicId: { type: String, required: true },
+    secureUrl: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const recipeSchema = new Schema<IRecipe>(
   {
     name: { type: String, required: true, trim: true },
@@ -35,6 +50,7 @@ const recipeSchema = new Schema<IRecipe>(
     ingredients: { type: String, default: '' },
     instructions: { type: String, required: true, trim: true },
     notes: { type: String, trim: true },
+    recipeImage: { type: recipeImageSchema, required: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'users', required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

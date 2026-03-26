@@ -405,6 +405,28 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             pagination: { $ref: '#/components/schemas/Pagination' },
           },
         },
+        RecipeImage: {
+          type: 'object',
+          description: 'Image on Cloudinary after upload (stored on the recipe).',
+          required: ['publicId', 'secureUrl'],
+          properties: {
+            publicId: { type: 'string', description: 'Cloudinary public_id (for replace/delete)' },
+            secureUrl: { type: 'string', format: 'uri', description: 'HTTPS delivery URL' },
+          },
+        },
+        RecipeImageUpload: {
+          type: 'object',
+          description:
+            'Optional JSON payload to upload/replace the recipe image. On success, `recipeImage` is set to `{ publicId, secureUrl }`; the previous asset is removed from Cloudinary when replaced.',
+          required: ['nameWithExtension', 'base64Content'],
+          properties: {
+            nameWithExtension: { type: 'string', example: 'photo.jpg' },
+            base64Content: {
+              type: 'string',
+              description: 'Raw base64 (no data: URL prefix) or full data URI',
+            },
+          },
+        },
         Recipe: {
           type: 'object',
           properties: {
@@ -418,6 +440,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             instructions: { type: 'string' },
             notes: { type: 'string' },
+            recipeImage: { $ref: '#/components/schemas/RecipeImage' },
             createdBy: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
@@ -462,6 +485,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             instructions: { type: 'string' },
             notes: { type: 'string' },
+            recipeImage: { $ref: '#/components/schemas/RecipeImageUpload' },
           },
         },
         RecipeUpdate: {
@@ -477,6 +501,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             instructions: { type: 'string' },
             notes: { type: 'string' },
+            recipeImage: { $ref: '#/components/schemas/RecipeImageUpload' },
           },
         },
       },

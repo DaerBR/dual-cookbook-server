@@ -15,6 +15,10 @@ const envSchema = z.object({
   ALLOWED_EMAILS: z.string().optional(),
   /** Optional single origin for browser clients (e.g. http://localhost:5173). Omit to reflect request origin. */
   CORS_ORIGIN: z.string().optional(),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
+  CLOUDINARY_BASE_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -3,7 +3,8 @@ import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
-import { escapeRegex, parseIngredientsField } from './utils';
+import { escapeRegex, parseIngredientsField, parseRecipeImageUpload } from './utils';
+import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
@@ -51,6 +52,25 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     createdBy: req.user.id,
   });
 
+  if (body.recipeImage !== undefined) {
+    const imageParsed = parseRecipeImageUpload(body.recipeImage);
+    if (!imageParsed.ok) {
+      await Recipe.findByIdAndDelete(doc._id);
+      res.status(400).json({ error: imageParsed.error });
+      return;
+    }
+    try {
+      const uploaded = await uploadRecipeImage(String(doc._id), imageParsed.data.dataUri);
+      doc.recipeImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
+      await doc.save();
+    } catch (err) {
+      console.error(err);
+      await Recipe.findByIdAndDelete(doc._id);
+      res.status(502).json({ error: 'Image upload failed' });
+      return;
+    }
+  }
+
   res.status(201).json(doc);
 };
 
@@ -61,8 +81,15 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     return;
   }
 
+  const existing = await Recipe.findById(id);
+  if (!existing) {
+    res.status(404).json({ error: 'Recipe not found' });
+    return;
+  }
+
   const body = req.body as Record<string, unknown>;
   const update: Record<string, unknown> = {};
+  let previousImagePublicId: string | undefined;
 
   if (body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim()) {
@@ -105,6 +132,23 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     update.notes = typeof body.notes === 'string' ? body.notes.trim() : '';
   }
 
+  if (body.recipeImage !== undefined) {
+    previousImagePublicId = existing.recipeImage?.publicId;
+    const imageParsed = parseRecipeImageUpload(body.recipeImage);
+    if (!imageParsed.ok) {
+      res.status(400).json({ error: imageParsed.error });
+      return;
+    }
+    try {
+      const uploaded = await uploadRecipeImage(id, imageParsed.data.dataUri);
+      update.recipeImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
+    } catch (err) {
+      console.error(err);
+      res.status(502).json({ error: 'Image upload failed' });
+      return;
+    }
+  }
+
   if (Object.keys(update).length === 0) {
     res.status(400).json({ error: 'No valid fields to update' });
     return;
@@ -117,6 +161,11 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     res.status(404).json({ error: 'Recipe not found' });
     return;
   }
+
+  if (previousImagePublicId) {
+    void destroyImageByPublicId(previousImagePublicId);
+  }
+
   res.json(doc);
 };
 
@@ -126,10 +175,15 @@ export const deleteRecipe = async (req: Request, res: Response): Promise<void> =
     res.status(400).json({ error: 'Invalid recipe id' });
     return;
   }
-  const result = await Recipe.findByIdAndDelete(id);
-  if (!result) {
+  const existing = await Recipe.findById(id).lean();
+  if (!existing) {
     res.status(404).json({ error: 'Recipe not found' });
     return;
+  }
+  await Recipe.findByIdAndDelete(id);
+  const imagePublicId = existing.recipeImage?.publicId;
+  if (imagePublicId) {
+    void destroyImageByPublicId(imagePublicId);
   }
   res.status(204).send();
 };
