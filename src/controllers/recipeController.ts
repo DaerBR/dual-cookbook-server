@@ -3,7 +3,7 @@ import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
-import { coerceOptionalNumber, escapeRegex, parseIngredientsField } from './utils';
+import { escapeRegex, parseIngredientsField } from './utils';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
@@ -47,7 +47,6 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
     ingredients: ingredientsResult.value,
     instructions: instructions.trim(),
-    servings: coerceOptionalNumber(body.servings),
     notes: typeof body.notes === 'string' ? body.notes.trim() : undefined,
     createdBy: req.user.id,
   });
@@ -102,10 +101,6 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     }
     update.ingredients = ingredientsResult.value;
   }
-  if (body.servings !== undefined) {
-    update.servings = coerceOptionalNumber(body.servings);
-  }
-
   if (body.notes !== undefined) {
     update.notes = typeof body.notes === 'string' ? body.notes.trim() : '';
   }

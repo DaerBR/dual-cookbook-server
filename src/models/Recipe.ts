@@ -10,7 +10,6 @@ export interface IRecipe extends Document {
   /** Plain text or HTML (e.g. from a rich text editor on the FE). */
   ingredients: string;
   instructions: string;
-  servings?: number;
   notes?: string;
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -35,7 +34,6 @@ const recipeSchema = new Schema<IRecipe>(
     description: { type: String, trim: true },
     ingredients: { type: String, default: '' },
     instructions: { type: String, required: true, trim: true },
-    servings: { type: Number, min: 1 },
     notes: { type: String, trim: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'users', required: true },
     createdAt: { type: Date, default: Date.now },
