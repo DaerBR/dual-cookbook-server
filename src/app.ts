@@ -13,7 +13,7 @@ import { recipeRouter } from './routes/recipeRoutes';
 import { categoryRouter } from './routes/categoryRoutes';
 import { setupSwagger } from './swagger/setupSwagger';
 
-export function createApp(): express.Application {
+export const createApp = (): express.Application => {
   const app = express();
   const env = getEnv();
 
@@ -53,4 +53,4 @@ export function createApp(): express.Application {
   );
 
   return app;
-}
+};

@@ -3,7 +3,7 @@ import { getPublicBaseUrl } from '../config/env';
 /**
  * OpenAPI 3 document for Swagger UI. Built with `swagger-jsdoc` in `setupSwagger.ts`.
  */
-export function getOpenApiDefinition(): Record<string, unknown> {
+export const getOpenApiDefinition = (): Record<string, unknown> => {
   return {
     openapi: '3.0.3',
     info: {
@@ -485,4 +485,4 @@ export function getOpenApiDefinition(): Record<string, unknown> {
       },
     },
   };
-}
+};

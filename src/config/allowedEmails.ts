@@ -5,7 +5,7 @@ const DEFAULT_ALLOWED = ['13daer@gmail.com', 'i.s.gaponova@gmail.com'] as const;
 /**
  * Returns lowercased allowed Google account emails (family whitelist).
  */
-export function getAllowedEmails(): string[] {
+export const getAllowedEmails = (): string[] => {
   const raw = getEnv().ALLOWED_EMAILS;
   if (!raw?.trim()) {
     return [...DEFAULT_ALLOWED];
@@ -14,12 +14,12 @@ export function getAllowedEmails(): string[] {
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-}
+};
 
-export function isEmailAllowed(email: string | undefined): boolean {
+export const isEmailAllowed = (email: string | undefined): boolean => {
   if (!email) {
     return false;
   }
   const normalized = email.trim().toLowerCase();
   return getAllowedEmails().includes(normalized);
-}
+};

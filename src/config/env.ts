@@ -21,7 +21,7 @@ export type Env = z.infer<typeof envSchema>;
 
 let cached: Env | null = null;
 
-export function getEnv(): Env {
+export const getEnv = (): Env => {
   if (cached) {
     return cached;
   }
@@ -32,9 +32,9 @@ export function getEnv(): Env {
   }
   cached = parsed.data;
   return cached;
-}
+};
 
-export function getPublicBaseUrl(): string {
+export const getPublicBaseUrl = (): string => {
   const e = getEnv();
   return (e.GOOGLE_CALLBACK_BASE ?? e.BASE_URL ?? `http://localhost:${e.PORT}`).replace(/\/$/, '');
-}
+};

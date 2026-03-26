@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { getEnv } from './config/env';
 import { createApp } from './app';
 
-async function main(): Promise<void> {
+const main = async (): Promise<void> => {
   const env = getEnv();
   await mongoose.connect(env.MONGO_URI);
   console.log('Connected to MongoDB');
@@ -14,7 +14,7 @@ async function main(): Promise<void> {
     console.log(`Server listening on http://localhost:${port}`);
     console.log(`Swagger UI: http://localhost:${port}/api/docs`);
   });
-}
+};
 
 main().catch((err: unknown) => {
   console.error(err);

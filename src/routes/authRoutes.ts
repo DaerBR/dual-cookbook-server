@@ -2,7 +2,7 @@ import type { Express, Request, Response } from 'express';
 import passport from 'passport';
 import { logoutSync } from '../utils/passportLogout';
 
-export function registerAuthRoutes(app: Express): void {
+export const registerAuthRoutes = (app: Express): void => {
   app.get(
     '/auth/google',
     passport.authenticate('google', {
@@ -42,4 +42,4 @@ export function registerAuthRoutes(app: Express): void {
   app.get('/api/logout', (req: Request, res: Response) => {
     logoutSync(req, res);
   });
-}
+};

@@ -1,15 +1,15 @@
 type ParseIngredientsOk = { ok: true; value: string };
 type ParseIngredientsErr = { ok: false; error: string };
 
-export function escapeRegex(value: string): string {
+export const escapeRegex = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+};
 
-export function isDuplicateKeyError(err: unknown): boolean {
+export const isDuplicateKeyError = (err: unknown): boolean => {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000;
-}
+};
 
-export function coerceOptionalNumber(value: unknown): number | undefined {
+export const coerceOptionalNumber = (value: unknown): number | undefined => {
   if (value === undefined || value === null || value === '') {
     return undefined;
   }
@@ -18,12 +18,12 @@ export function coerceOptionalNumber(value: unknown): number | undefined {
     return undefined;
   }
   return numericValue;
-}
+};
 
-export function parseIngredientsField(
+export const parseIngredientsField = (
   raw: unknown,
   opts: { required: boolean },
-): ParseIngredientsOk | ParseIngredientsErr {
+): ParseIngredientsOk | ParseIngredientsErr => {
   if (raw === undefined || raw === null) {
     if (opts.required) {
       return { ok: false, error: 'ingredients must be a string' };
@@ -34,4 +34,4 @@ export function parseIngredientsField(
     return { ok: false, error: 'ingredients must be a string' };
   }
   return { ok: true, value: raw };
-}
+};
