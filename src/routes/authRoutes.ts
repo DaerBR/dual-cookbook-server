@@ -15,8 +15,13 @@ export const registerAuthRoutes = (app: Express): void => {
     passport.authenticate('google', {
       failureRedirect: '/auth/google/failure',
     }),
-    (_req: Request, res: Response) => {
-      res.redirect('/');
+    (req: Request, res: Response) => {
+      res.send(`
+      <script>
+        window.opener.postMessage({ type: 'AUTH_SUCCESS', user: ${JSON.stringify(req.user)} }, '*');
+        window.close();
+      </script>
+    `);
     },
   );
 
