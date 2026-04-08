@@ -41,21 +41,18 @@ export const registerAuthRoutes = (app: Express): void => {
         const targetOrigin = getOAuthPopupPostMessageTarget();
         const payloadJson = JSON.stringify(payload);
 
-        res.type('html').send(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Signed in</title></head><body>
-<script>
-  (function () {
-    var payload = ${payloadJson};
-    var target = ${JSON.stringify(targetOrigin)};
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', payload: payload }, target);
-    }
-    window.close();
-  })();
-</script>
-<p>You can close this window.</p>
-</body></html>`);
+        res.type('html').send(`<script>
+        (function () {
+          var payload = ${payloadJson};
+          var target = ${JSON.stringify(targetOrigin)};
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', payload: payload }, target);
+          }
+          window.close();
+        })();
+        </script>`);
       },
+
   );
 
   app.get('/auth/google/failure', (_req: Request, res: Response) => {
@@ -77,6 +74,7 @@ export const registerAuthRoutes = (app: Express): void => {
   });
 
   app.get('/api/logout', (req: Request, res: Response) => {
-    logoutSync(req, res);
+    logoutSync(req);
+    res.json({ ok: true });
   });
 };

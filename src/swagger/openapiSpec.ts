@@ -96,7 +96,18 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
           tags: ['Auth'],
           summary: 'Log out (clears session)',
           responses: {
-            '302': { description: 'Redirect to app root' },
+            '200': {
+              description: 'Session cleared',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { ok: { type: 'boolean', example: true } },
+                    required: ['ok'],
+                  },
+                },
+              },
+            },
           },
         },
       },

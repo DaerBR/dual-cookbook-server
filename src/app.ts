@@ -17,6 +17,9 @@ export const createApp = (): express.Application => {
   const app = express();
   const env = getEnv();
 
+  /** Avoid 304 + empty body on repeat GETs (e.g. `/api/current_user`) when the JSON is unchanged. */
+  app.set('etag', false);
+
   const corsOrigin = env.CORS_ORIGIN
     ? env.CORS_ORIGIN.split(',').map((s) => s.trim())
     : true;
