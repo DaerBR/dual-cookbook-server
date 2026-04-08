@@ -20,6 +20,10 @@ export const createApp = (): express.Application => {
   /** Avoid 304 + empty body on repeat GETs (e.g. `/api/current_user`) when the JSON is unchanged. */
   app.set('etag', false);
 
+  if (env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   const corsOrigin = env.CORS_ORIGIN
     ? env.CORS_ORIGIN.split(',').map((s) => s.trim())
     : true;
@@ -27,11 +31,17 @@ export const createApp = (): express.Application => {
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(express.json());
 
+  const sessionCookieCrossSite = env.NODE_ENV === 'production';
+
   app.use(
     cookieSession({
       maxAge: 30 * 24 * 60 * 60 * 1000,
       keys: [env.COOKIE_KEY],
       name: 'session',
+      httpOnly: true,
+      /** Cross-origin SPA (e.g. Vercel → Render): Lax cookies are not sent on XHR; None+Secure is required. */
+      secure: sessionCookieCrossSite,
+      sameSite: sessionCookieCrossSite ? 'none' : 'lax',
     }),
   );
   app.use(passport.initialize());

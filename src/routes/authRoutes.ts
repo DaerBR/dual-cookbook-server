@@ -62,6 +62,7 @@ export const registerAuthRoutes = (app: Express): void => {
   });
 
   app.get('/api/current_user', (req: Request, res: Response) => {
+    res.set('Cache-Control', 'private, no-store');
     if (!req.user) {
       res.json(null);
       return;
