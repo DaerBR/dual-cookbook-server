@@ -1,7 +1,7 @@
 import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 
 /** Stored after Cloudinary upload (needed for delete / replace). */
-export interface IRecipeImage {
+export interface RecipeImage {
   publicId: string;
   secureUrl: string;
 }
@@ -9,7 +9,7 @@ export interface IRecipeImage {
 /**
  * Full recipe document stored in MongoDB.
  */
-export interface IRecipe extends Document {
+export interface Recipe extends Document {
   name: string;
   category: Types.ObjectId;
   description?: string;
@@ -17,7 +17,7 @@ export interface IRecipe extends Document {
   ingredients: string;
   instructions: string;
   notes?: string;
-  recipeImage?: IRecipeImage;
+  recipeImage?: RecipeImage;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -26,7 +26,7 @@ export interface IRecipe extends Document {
 /**
  * Short shape returned in paginated recipe lists (table view).
  */
-export interface IRecipeTableRow {
+export interface RecipeTableRow {
   _id: Types.ObjectId;
   name: string;
   category: Types.ObjectId;
@@ -34,7 +34,7 @@ export interface IRecipeTableRow {
   updatedAt: Date;
 }
 
-const recipeImageSchema = new Schema<IRecipeImage>(
+const recipeImageSchema = new Schema<RecipeImage>(
   {
     publicId: { type: String, required: true },
     secureUrl: { type: String, required: true },
@@ -42,7 +42,7 @@ const recipeImageSchema = new Schema<IRecipeImage>(
   { _id: false },
 );
 
-const recipeSchema = new Schema<IRecipe>(
+const recipeSchema = new Schema<Recipe>(
   {
     name: { type: String, required: true, trim: true },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
@@ -63,9 +63,9 @@ const recipeSchema = new Schema<IRecipe>(
 
 recipeSchema.index({ category: 1, createdAt: -1 });
 
-recipeSchema.pre('save', function setUpdatedAt(this: IRecipe) {
+recipeSchema.pre('save', function setUpdatedAt(this: Recipe) {
   this.updatedAt = new Date();
 });
 
-export const Recipe: Model<IRecipe> =
-  mongoose.models.Recipe ?? mongoose.model<IRecipe>('Recipe', recipeSchema);
+export const Recipe: Model<Recipe> =
+  mongoose.models.Recipe ?? mongoose.model<Recipe>('Recipe', recipeSchema);

@@ -1,9 +1,25 @@
 import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
 
+/** Stored after Cloudinary upload (needed for delete / replace). */
+export interface CategoryImage {
+  publicId: string;
+  secureUrl: string;
+}
+
+
 export interface ICategory extends Document {
   name: string;
   createdAt: Date;
+  categoryImage?: CategoryImage,
 }
+
+const categoryImageSchema = new Schema<CategoryImage>(
+    {
+      publicId: { type: String, required: true },
+      secureUrl: { type: String, required: true },
+    },
+    { _id: false },
+);
 
 const categorySchema = new Schema<ICategory>({
   name: {
@@ -16,6 +32,7 @@ const categorySchema = new Schema<ICategory>({
     type: Date,
     default: Date.now,
   },
+  categoryImage: { type: categoryImageSchema, required: false },
 });
 
 export type CategoryId = Types.ObjectId;
