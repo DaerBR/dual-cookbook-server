@@ -340,6 +340,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             '400': { description: 'Validation error' },
             '401': { description: 'Not authenticated' },
             '409': { description: 'Duplicate name' },
+            '502': {
+              description: 'Cloudinary image upload failed (when `categoryImage` was sent)',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorMessage' },
+                },
+              },
+            },
           },
         },
       },
@@ -374,7 +382,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             required: true,
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/CategoryCreate' },
+                schema: { $ref: '#/components/schemas/CategoryUpdate' },
               },
             },
           },
@@ -391,6 +399,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             '401': { description: 'Not authenticated' },
             '404': { description: 'Not found' },
             '409': { description: 'Duplicate name' },
+            '502': {
+              description: 'Cloudinary image upload failed (when `categoryImage` was sent)',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorMessage' },
+                },
+              },
+            },
           },
         },
         delete: {
@@ -485,6 +501,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             _id: { type: 'string' },
             name: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
+            categoryImage: { $ref: '#/components/schemas/RecipeImage' },
           },
         },
         CategoryCreate: {
@@ -492,6 +509,15 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
           required: ['name'],
           properties: {
             name: { type: 'string' },
+            categoryImage: { $ref: '#/components/schemas/RecipeImageUpload' },
+          },
+        },
+        CategoryUpdate: {
+          type: 'object',
+          description: 'Partial update; include at least one of `name` or `categoryImage`.',
+          properties: {
+            name: { type: 'string' },
+            categoryImage: { $ref: '#/components/schemas/RecipeImageUpload' },
           },
         },
         CategoryPage: {
@@ -506,7 +532,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         },
         RecipeImage: {
           type: 'object',
-          description: 'Image on Cloudinary after upload (stored on the recipe).',
+          description: 'Cloudinary asset returned as `recipeImage` (recipes) or `categoryImage` (categories).',
           required: ['publicId', 'secureUrl'],
           properties: {
             publicId: { type: 'string', description: 'Cloudinary public_id (for replace/delete)' },
@@ -516,7 +542,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         RecipeImageUpload: {
           type: 'object',
           description:
-            'Optional JSON payload to upload/replace the recipe image. On success, `recipeImage` is set to `{ publicId, secureUrl }`; the previous asset is removed from Cloudinary when replaced.',
+            'Upload payload (`nameWithExtension`, `base64Content`). Used for optional `recipeImage` on recipe create/update and optional `categoryImage` on category create/update. On replace, the previous Cloudinary asset is removed.',
           required: ['nameWithExtension', 'base64Content'],
           properties: {
             nameWithExtension: { type: 'string', example: 'photo.jpg' },

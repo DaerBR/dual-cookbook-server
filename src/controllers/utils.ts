@@ -21,31 +21,31 @@ const extensionToMime = (ext: string): string | null => {
 const isAllowedImageMime = (mime: string): boolean =>
   mime === 'image/jpeg' || mime === 'image/png';
 
-export const parseRecipeImageUpload = (raw: unknown): ParseRecipeImageUploadResult => {
+const parseImageUpload = (raw: unknown, field: string): ParseRecipeImageUploadResult => {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { ok: false, error: 'recipeImage must be an object' };
+    return { ok: false, error: `${field} must be an object` };
   }
   const obj = raw as Record<string, unknown>;
   const nameWithExtension = obj.nameWithExtension;
   const base64Content = obj.base64Content;
   if (typeof nameWithExtension !== 'string' || !nameWithExtension.trim()) {
-    return { ok: false, error: 'recipeImage.nameWithExtension is required' };
+    return { ok: false, error: `${field}.nameWithExtension is required` };
   }
   if (typeof base64Content !== 'string' || !base64Content.trim()) {
-    return { ok: false, error: 'recipeImage.base64Content is required' };
+    return { ok: false, error: `${field}.base64Content is required` };
   }
   const name = nameWithExtension.trim();
   const lastDot = name.lastIndexOf('.');
   if (lastDot < 0 || lastDot === name.length - 1) {
     return {
       ok: false,
-      error: 'recipeImage.nameWithExtension must include an extension (e.g. photo.jpg)',
+      error: `${field}.nameWithExtension must include an extension (e.g. photo.jpg)`,
     };
   }
   const ext = name.slice(lastDot + 1);
   const mimeFromExt = extensionToMime(ext);
   if (!mimeFromExt) {
-    return { ok: false, error: 'recipeImage must use .jpg, .jpeg, or .png' };
+    return { ok: false, error: `${field} must use .jpg, .jpeg, or .png` };
   }
 
   let payload = base64Content.trim();
@@ -60,25 +60,31 @@ export const parseRecipeImageUpload = (raw: unknown): ParseRecipeImageUploadResu
   }
 
   if (mime && !isAllowedImageMime(mime)) {
-    return { ok: false, error: 'recipeImage must be JPEG or PNG' };
+    return { ok: false, error: `${field} must be JPEG or PNG` };
   }
 
   const buffer = Buffer.from(payload, 'base64');
   if (buffer.length === 0) {
-    return { ok: false, error: 'recipeImage decoded payload is empty' };
+    return { ok: false, error: `${field} decoded payload is empty` };
   }
   if (buffer.length > MAX_RECIPE_IMAGE_BYTES) {
-    return { ok: false, error: 'recipeImage must be at most 5 MB' };
+    return { ok: false, error: `${field} must be at most 5 MB` };
   }
 
   const finalMime = mime ?? mimeFromExt;
   if (!isAllowedImageMime(finalMime)) {
-    return { ok: false, error: 'recipeImage must be JPEG or PNG' };
+    return { ok: false, error: `${field} must be JPEG or PNG` };
   }
 
   const dataUri = `data:${finalMime};base64,${payload}`;
   return { ok: true, data: { dataUri } };
 };
+
+export const parseRecipeImageUpload = (raw: unknown): ParseRecipeImageUploadResult =>
+  parseImageUpload(raw, 'recipeImage');
+
+export const parseCategoryImageUpload = (raw: unknown): ParseRecipeImageUploadResult =>
+  parseImageUpload(raw, 'categoryImage');
 
 export const escapeRegex = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -34,6 +34,23 @@ export const uploadRecipeImage = async (
   };
 };
 
+export const uploadCategoryImage = async (
+  categoryId: string,
+  dataUri: string,
+): Promise<{ publicId: string; secureUrl: string }> => {
+  configureCloudinary();
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: `dual-cookbook/categories/${categoryId}`,
+    resource_type: 'image',
+    overwrite: false,
+    unique_filename: true,
+  });
+  return {
+    publicId: result.public_id,
+    secureUrl: result.secure_url,
+  };
+};
+
 export const destroyImageByPublicId = async (publicId: string): Promise<void> => {
   configureCloudinary();
   try {
