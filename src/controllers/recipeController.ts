@@ -6,6 +6,7 @@ import { isValidObjectId } from '../utils/mongo';
 import { escapeRegex, parseIngredientsField, parseRecipeImageUpload } from './utils';
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 import { jsonError } from '../utils/jsonError';
+import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
@@ -251,7 +252,7 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   ]);
 
   res.json({
-    data: rows,
+    data: renameMongoIdsForClient(rows),
     pagination: buildPaginationMeta(page, limit, total),
   });
 };

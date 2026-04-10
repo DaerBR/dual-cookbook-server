@@ -6,6 +6,7 @@ import { isValidObjectId } from '../utils/mongo';
 import { destroyImageByPublicId, uploadCategoryImage } from '../services/cloudinaryRecipeImage';
 import { escapeRegex, isDuplicateKeyError, parseCategoryImageUpload } from './utils';
 import { jsonError } from '../utils/jsonError';
+import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 export const createCategory = async (req: Request, res: Response): Promise<void> => {
   const body = req.body as Record<string, unknown>;
@@ -152,14 +153,14 @@ export const listCategoriesPaginated = async (req: Request, res: Response): Prom
   ]);
 
   res.json({
-    data,
+    data: renameMongoIdsForClient(data),
     pagination: buildPaginationMeta(page, limit, total),
   });
 };
 
 export const listAllCategories = async (_req: Request, res: Response): Promise<void> => {
   const data = await Category.find().sort({ name: 1 }).lean();
-  res.json(data);
+  res.json(renameMongoIdsForClient(data));
 };
 
 export const deleteCategory = async (req: Request, res: Response): Promise<void> => {

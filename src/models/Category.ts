@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
+import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 /** Stored after Cloudinary upload (needed for delete / replace). */
 export interface CategoryImage {
@@ -33,6 +34,13 @@ const categorySchema = new Schema<Category>({
     default: Date.now,
   },
   categoryImage: { type: categoryImageSchema, required: false },
+});
+
+categorySchema.set('toJSON', {
+  transform: (_doc, ret) => renameMongoIdsForClient(ret),
+});
+categorySchema.set('toObject', {
+  transform: (_doc, ret) => renameMongoIdsForClient(ret),
 });
 
 export type CategoryId = Types.ObjectId;

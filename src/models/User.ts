@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 export interface IUser extends Document {
   id: string;
@@ -27,6 +28,13 @@ const userSchema = new Schema<IUser>({
     type: Date,
     default: Date.now,
   },
+});
+
+userSchema.set('toJSON', {
+  transform: (_doc, ret) => renameMongoIdsForClient(ret),
+});
+userSchema.set('toObject', {
+  transform: (_doc, ret) => renameMongoIdsForClient(ret),
 });
 
 export const User: Model<IUser> =

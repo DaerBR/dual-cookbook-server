@@ -509,7 +509,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         Category: {
           type: 'object',
           properties: {
-            _id: { type: 'string' },
+            id: { type: 'string', description: 'MongoDB document id (hex string)' },
             name: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
             categoryImage: {
@@ -579,9 +579,21 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         Recipe: {
           type: 'object',
           properties: {
-            _id: { type: 'string' },
+            id: { type: 'string', description: 'MongoDB document id (hex string)' },
             name: { type: 'string' },
-            category: { type: 'string', description: 'Category ObjectId or populated object' },
+            category: {
+              description: 'Category id string, or populated `{ id, name }`',
+              oneOf: [
+                { type: 'string' },
+                {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                  },
+                },
+              ],
+            },
             description: { type: 'string' },
             ingredients: {
               type: 'string',
@@ -602,12 +614,12 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         RecipeTableRow: {
           type: 'object',
           properties: {
-            _id: { type: 'string' },
+            id: { type: 'string' },
             name: { type: 'string' },
             category: {
               type: 'object',
               properties: {
-                _id: { type: 'string' },
+                id: { type: 'string' },
                 name: { type: 'string' },
               },
             },

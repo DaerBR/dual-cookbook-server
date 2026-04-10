@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
+import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 /** Stored after Cloudinary upload (needed for delete / replace). */
 export interface RecipeImage {
@@ -27,7 +28,7 @@ export interface Recipe extends Document {
  * Short shape returned in paginated recipe lists (table view).
  */
 export interface RecipeTableRow {
-  _id: Types.ObjectId;
+  id: string;
   name: string;
   category: Types.ObjectId;
   createdAt: Date;
@@ -55,11 +56,16 @@ const recipeSchema = new Schema<Recipe>(
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
-  {
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  },
 );
+
+recipeSchema.set('toJSON', {
+  virtuals: true,
+  transform: (_doc, ret) => renameMongoIdsForClient(ret),
+});
+recipeSchema.set('toObject', {
+  virtuals: true,
+  transform: (_doc, ret) => renameMongoIdsForClient(ret),
+});
 
 recipeSchema.index({ category: 1, createdAt: -1 });
 
