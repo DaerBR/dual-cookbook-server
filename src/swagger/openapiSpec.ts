@@ -403,7 +403,24 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             '400': { description: 'Invalid id' },
             '401': { description: 'Not authenticated' },
             '404': { description: 'Not found' },
-            '409': { description: 'Category still referenced by recipes' },
+            '409': {
+              description: 'Category is still referenced by one or more recipes',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['error', 'recipeCount'],
+                    properties: {
+                      error: {
+                        type: 'string',
+                        example: 'This category is used by one or more recipes and cannot be deleted',
+                      },
+                      recipeCount: { type: 'integer', minimum: 1 },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
