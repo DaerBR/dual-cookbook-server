@@ -7,7 +7,7 @@ export interface CategoryImage {
 }
 
 
-export interface ICategory extends Document {
+export interface Category extends Document {
   name: string;
   createdAt: Date;
   categoryImage?: CategoryImage,
@@ -21,7 +21,7 @@ const categoryImageSchema = new Schema<CategoryImage>(
     { _id: false },
 );
 
-const categorySchema = new Schema<ICategory>({
+const categorySchema = new Schema<Category>({
   name: {
     type: String,
     required: true,
@@ -37,5 +37,5 @@ const categorySchema = new Schema<ICategory>({
 
 export type CategoryId = Types.ObjectId;
 
-export const Category: Model<ICategory> =
-  mongoose.models.Category ?? mongoose.model<ICategory>('Category', categorySchema);
+export const Category: Model<Category> =
+  mongoose.models.Category ?? mongoose.model<Category>('Category', categorySchema);

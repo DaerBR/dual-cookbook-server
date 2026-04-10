@@ -9,8 +9,15 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
     info: {
       title: 'Dual Cookbook API',
       version: '1.0.0',
-      description:
-        'Family cookbook API. Authenticate via Google OAuth (`/auth/google`), then call protected routes with the session cookie.',
+      description: [
+        'Family cookbook API: Google OAuth, then session cookie `session` for `/api/*` routes.',
+        '',
+        '**SPA (cross-origin):** Set server `CORS_ORIGIN` to your frontend origin (exact URL, e.g. `http://localhost:5174`). The browser must send cookies: `axios` → `withCredentials: true`, `fetch` → `credentials: "include"`. In production the session cookie uses `SameSite=None; Secure`.',
+        '',
+        '**OAuth callback:** On success, returns **HTML** (not JSON) that runs in a popup and `postMessage`s `{ type: "GOOGLE_AUTH_SUCCESS", payload }` to `window.opener` (target = first `CORS_ORIGIN` or `*`).',
+        '',
+        '**Swagger “Try it out”:** Cookie auth only works when the UI is on the **same site** as the API or you paste a `Cookie` header; cross-origin logins from here are limited.',
+      ].join('\n'),
     },
     servers: [{ url: getPublicBaseUrl() }],
     tags: [
@@ -51,9 +58,37 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
       '/auth/google/callback': {
         get: {
           tags: ['Auth'],
-          summary: 'Google OAuth callback',
+          summary: 'Google OAuth callback (Google redirects here with ?code=&state=)',
+          description:
+            'Passport validates the code, establishes the session cookie, then returns **200** `text/html`: a short script that `postMessage`s the user to `opener` and closes the popup. On auth failure, **302** to `/auth/google/failure`.',
+          parameters: [
+            {
+              name: 'code',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+              description: 'Authorization code (set by Google)',
+            },
+            {
+              name: 'state',
+              in: 'query',
+              required: false,
+              schema: { type: 'string' },
+              description: 'OAuth state (set by Passport)',
+            },
+          ],
           responses: {
-            '302': { description: 'Redirect to app root on success' },
+            '200': {
+              description: 'HTML page: postMessage to opener + window.close()',
+              content: {
+                'text/html': {
+                  schema: { type: 'string' },
+                },
+              },
+            },
+            '302': {
+              description: 'Redirect to `/auth/google/failure` when Google login fails or user is not allowlisted',
+            },
           },
         },
       },
@@ -77,9 +112,17 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         get: {
           tags: ['Auth'],
           summary: 'Current session user',
+          description:
+            'Returns JSON `null` if the session cookie is missing or invalid (e.g. cross-origin request without `credentials`). Response includes `Cache-Control: private, no-store`.',
           responses: {
             '200': {
-              description: 'User or null if not logged in',
+              description: 'User object or JSON `null` when unauthenticated',
+              headers: {
+                'Cache-Control': {
+                  description: 'Always `private, no-store`',
+                  schema: { type: 'string', example: 'private, no-store' },
+                },
+              },
               content: {
                 'application/json': {
                   schema: {
@@ -167,6 +210,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             '400': { description: 'Validation error' },
             '401': { description: 'Not authenticated' },
+            '502': {
+              description: 'Cloudinary image upload failed (when `recipeImage` was sent)',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorMessage' },
+                },
+              },
+            },
           },
         },
       },
@@ -215,6 +266,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             '400': { description: 'Validation error' },
             '401': { description: 'Not authenticated' },
             '404': { description: 'Not found' },
+            '502': {
+              description: 'Cloudinary image upload failed (when `recipeImage` was sent)',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorMessage' },
+                },
+              },
+            },
           },
         },
         delete: {
@@ -355,7 +414,8 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
           type: 'apiKey',
           in: 'cookie',
           name: 'session',
-          description: 'Session cookie set after Google OAuth login.',
+          description:
+            'Signed session cookie set after successful `/auth/google/callback`. Send it on cross-origin API calls only with browser **credentials** and a matching **CORS** allowlist (`CORS_ORIGIN`). Cookie name is `session`.',
         },
       },
       parameters: {
@@ -384,6 +444,17 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         },
         UserPublic: {
           type: 'object',
+          description: 'Shape returned by `GET /api/current_user` when authenticated (not the OAuth popup payload).',
+          properties: {
+            id: { type: 'string' },
+            displayName: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+          },
+        },
+        OAuthPopupUserPayload: {
+          type: 'object',
+          description:
+            'Payload inside `postMessage` from the OAuth callback popup (`GOOGLE_AUTH_SUCCESS`). Includes `createdAt` for convenience on the client.',
           properties: {
             id: { type: 'string' },
             displayName: { type: 'string' },
