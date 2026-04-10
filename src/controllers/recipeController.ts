@@ -5,10 +5,11 @@ import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
 import { escapeRegex, parseIngredientsField, parseRecipeImageUpload } from './utils';
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
+import { jsonError } from '../utils/jsonError';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    res.status(401).json({ error: 'Unauthorized' });
+    jsonError(res, 401, 'Unauthorized');
     return;
   }
 
@@ -18,27 +19,27 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
   const instructions = body.instructions;
 
   if (typeof name !== 'string' || !name.trim()) {
-    res.status(400).json({ error: 'name is required' });
+    jsonError(res, 400, 'name is required');
     return;
   }
   if (typeof categoryId !== 'string' || !isValidObjectId(categoryId)) {
-    res.status(400).json({ error: 'category must be a valid id' });
+    jsonError(res, 400, 'category must be a valid id');
     return;
   }
   if (typeof instructions !== 'string' || !instructions.trim()) {
-    res.status(400).json({ error: 'instructions is required' });
+    jsonError(res, 400, 'instructions is required');
     return;
   }
 
   const categoryExists = await Category.exists({ _id: categoryId });
   if (!categoryExists) {
-    res.status(400).json({ error: 'Category does not exist' });
+    jsonError(res, 400, 'Category does not exist');
     return;
   }
 
   const ingredientsResult = parseIngredientsField(body.ingredients, { required: false });
   if (!ingredientsResult.ok) {
-    res.status(400).json({ error: ingredientsResult.error });
+    jsonError(res, 400, ingredientsResult.error);
     return;
   }
 
@@ -52,11 +53,12 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     createdBy: req.user.id,
   });
 
-  if (body.recipeImage !== undefined) {
-    const imageParsed = parseRecipeImageUpload(body.recipeImage);
+  const rawRecipeImage = body.recipeImage;
+  if (rawRecipeImage !== undefined && rawRecipeImage !== null) {
+    const imageParsed = parseRecipeImageUpload(rawRecipeImage);
     if (!imageParsed.ok) {
       await Recipe.findByIdAndDelete(doc._id);
-      res.status(400).json({ error: imageParsed.error });
+      jsonError(res, 400, imageParsed.error);
       return;
     }
     try {
@@ -66,7 +68,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     } catch (err) {
       console.error(err);
       await Recipe.findByIdAndDelete(doc._id);
-      res.status(502).json({ error: 'Image upload failed' });
+      jsonError(res, 502, 'Image upload failed');
       return;
     }
   }
@@ -77,88 +79,106 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
 export const updateRecipe = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
-    res.status(400).json({ error: 'Invalid recipe id' });
+    jsonError(res, 400, 'Invalid recipe id');
     return;
   }
 
   const existing = await Recipe.findById(id);
   if (!existing) {
-    res.status(404).json({ error: 'Recipe not found' });
+    jsonError(res, 404, 'Recipe not found');
     return;
   }
 
   const body = req.body as Record<string, unknown>;
-  const update: Record<string, unknown> = {};
+  const $set: Record<string, unknown> = {};
+  const $unset: Record<string, ''> = {};
   let previousImagePublicId: string | undefined;
+  let orphanNewImagePublicId: string | undefined;
 
   if (body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim()) {
-      res.status(400).json({ error: 'name must be a non-empty string' });
+      jsonError(res, 400, 'name must be a non-empty string');
       return;
     }
-    update.name = body.name.trim();
+    $set.name = body.name.trim();
   }
   if (body.category !== undefined) {
     if (typeof body.category !== 'string' || !isValidObjectId(body.category)) {
-      res.status(400).json({ error: 'category must be a valid id' });
+      jsonError(res, 400, 'category must be a valid id');
       return;
     }
     const categoryExists = await Category.exists({ _id: body.category });
     if (!categoryExists) {
-      res.status(400).json({ error: 'Category does not exist' });
+      jsonError(res, 400, 'Category does not exist');
       return;
     }
-    update.category = body.category;
+    $set.category = body.category;
   }
   if (body.description !== undefined) {
-    update.description = typeof body.description === 'string' ? body.description.trim() : '';
+    $set.description = typeof body.description === 'string' ? body.description.trim() : '';
   }
   if (body.instructions !== undefined) {
     if (typeof body.instructions !== 'string' || !body.instructions.trim()) {
-      res.status(400).json({ error: 'instructions must be a non-empty string' });
+      jsonError(res, 400, 'instructions must be a non-empty string');
       return;
     }
-    update.instructions = body.instructions.trim();
+    $set.instructions = body.instructions.trim();
   }
   if (body.ingredients !== undefined) {
     const ingredientsResult = parseIngredientsField(body.ingredients, { required: true });
     if (!ingredientsResult.ok) {
-      res.status(400).json({ error: ingredientsResult.error });
+      jsonError(res, 400, ingredientsResult.error);
       return;
     }
-    update.ingredients = ingredientsResult.value;
+    $set.ingredients = ingredientsResult.value;
   }
   if (body.notes !== undefined) {
-    update.notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+    $set.notes = typeof body.notes === 'string' ? body.notes.trim() : '';
   }
 
   if (body.recipeImage !== undefined) {
-    previousImagePublicId = existing.recipeImage?.publicId;
-    const imageParsed = parseRecipeImageUpload(body.recipeImage);
-    if (!imageParsed.ok) {
-      res.status(400).json({ error: imageParsed.error });
-      return;
-    }
-    try {
-      const uploaded = await uploadRecipeImage(id, imageParsed.data.dataUri);
-      update.recipeImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
-    } catch (err) {
-      console.error(err);
-      res.status(502).json({ error: 'Image upload failed' });
-      return;
+    if (body.recipeImage === null) {
+      if (existing.recipeImage?.publicId) {
+        previousImagePublicId = existing.recipeImage.publicId;
+      }
+      $unset.recipeImage = '';
+    } else {
+      previousImagePublicId = existing.recipeImage?.publicId;
+      const imageParsed = parseRecipeImageUpload(body.recipeImage);
+      if (!imageParsed.ok) {
+        jsonError(res, 400, imageParsed.error);
+        return;
+      }
+      try {
+        const uploaded = await uploadRecipeImage(id, imageParsed.data.dataUri);
+        orphanNewImagePublicId = uploaded.publicId;
+        $set.recipeImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
+      } catch (err) {
+        console.error(err);
+        jsonError(res, 502, 'Image upload failed');
+        return;
+      }
     }
   }
 
-  if (Object.keys(update).length === 0) {
-    res.status(400).json({ error: 'No valid fields to update' });
+  if (Object.keys($set).length === 0 && Object.keys($unset).length === 0) {
+    jsonError(res, 400, 'No valid fields to update');
     return;
   }
 
-  update.updatedAt = new Date();
+  $set.updatedAt = new Date();
 
-  const doc = await Recipe.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true });
+  const mongoUpdate: Record<string, unknown> = { $set: $set };
+  if (Object.keys($unset).length > 0) {
+    mongoUpdate.$unset = $unset;
+  }
+
+  const doc = await Recipe.findByIdAndUpdate(id, mongoUpdate, { new: true, runValidators: true });
   if (!doc) {
-    res.status(404).json({ error: 'Recipe not found' });
+    if (orphanNewImagePublicId) {
+      void destroyImageByPublicId(orphanNewImagePublicId);
+    }
+    jsonError(res, 404, 'Recipe not found');
     return;
   }
 
@@ -172,12 +192,12 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
 export const deleteRecipe = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
-    res.status(400).json({ error: 'Invalid recipe id' });
+    jsonError(res, 400, 'Invalid recipe id');
     return;
   }
   const existing = await Recipe.findById(id).lean();
   if (!existing) {
-    res.status(404).json({ error: 'Recipe not found' });
+    jsonError(res, 404, 'Recipe not found');
     return;
   }
   await Recipe.findByIdAndDelete(id);
@@ -191,12 +211,12 @@ export const deleteRecipe = async (req: Request, res: Response): Promise<void> =
 export const getRecipeById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
-    res.status(400).json({ error: 'Invalid recipe id' });
+    jsonError(res, 400, 'Invalid recipe id');
     return;
   }
   const doc = await Recipe.findById(id).populate('category', 'name').populate('createdBy', 'displayName email');
   if (!doc) {
-    res.status(404).json({ error: 'Recipe not found' });
+    jsonError(res, 404, 'Recipe not found');
     return;
   }
   res.json(doc);
@@ -213,7 +233,7 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   }
   if (categoryFilter) {
     if (!isValidObjectId(categoryFilter)) {
-      res.status(400).json({ error: 'category filter must be a valid ObjectId' });
+      jsonError(res, 400, 'category filter must be a valid ObjectId');
       return;
     }
     filter.category = categoryFilter;

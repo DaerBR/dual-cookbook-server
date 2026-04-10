@@ -1,8 +1,9 @@
 import type { RequestHandler } from 'express';
+import { jsonError } from '../utils/jsonError';
 
 export const requireLogin: RequestHandler = (req, res, next) => {
   if (!req.user) {
-    res.status(401).json({ error: 'You must log in!' });
+    jsonError(res, 401, 'You must log in!');
     return;
   }
   next();

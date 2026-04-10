@@ -5,12 +5,13 @@ import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
 import { destroyImageByPublicId, uploadCategoryImage } from '../services/cloudinaryRecipeImage';
 import { escapeRegex, isDuplicateKeyError, parseCategoryImageUpload } from './utils';
+import { jsonError } from '../utils/jsonError';
 
 export const createCategory = async (req: Request, res: Response): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   const name = body.name;
   if (typeof name !== 'string' || !name.trim()) {
-    res.status(400).json({ error: 'name is required' });
+    jsonError(res, 400, 'name is required');
     return;
   }
 
@@ -19,17 +20,18 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
     doc = await Category.create({ name: name.trim() });
   } catch (err: unknown) {
     if (isDuplicateKeyError(err)) {
-      res.status(409).json({ error: 'A category with this name already exists' });
+      jsonError(res, 409, 'A category with this name already exists');
       return;
     }
     throw err;
   }
 
-  if (body.categoryImage !== undefined) {
-    const imageParsed = parseCategoryImageUpload(body.categoryImage);
+  const rawImage = body.categoryImage;
+  if (rawImage !== undefined && rawImage !== null) {
+    const imageParsed = parseCategoryImageUpload(rawImage);
     if (!imageParsed.ok) {
       await Category.findByIdAndDelete(doc._id);
-      res.status(400).json({ error: imageParsed.error });
+      jsonError(res, 400, imageParsed.error);
       return;
     }
     try {
@@ -39,7 +41,7 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
     } catch (err) {
       console.error(err);
       await Category.findByIdAndDelete(doc._id);
-      res.status(502).json({ error: 'Image upload failed' });
+      jsonError(res, 502, 'Image upload failed');
       return;
     }
   }
@@ -50,59 +52,74 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
-    res.status(400).json({ error: 'Invalid category id' });
+    jsonError(res, 400, 'Invalid category id');
     return;
   }
 
   const existing = await Category.findById(id);
   if (!existing) {
-    res.status(404).json({ error: 'Category not found' });
+    jsonError(res, 404, 'Category not found');
     return;
   }
 
   const body = req.body as Record<string, unknown>;
-  const update: Record<string, unknown> = {};
+  const $set: Record<string, unknown> = {};
+  const $unset: Record<string, ''> = {};
   let previousImagePublicId: string | undefined;
   let orphanNewImagePublicId: string | undefined;
 
   if (body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim()) {
-      res.status(400).json({ error: 'name must be a non-empty string' });
+      jsonError(res, 400, 'name must be a non-empty string');
       return;
     }
-    update.name = body.name.trim();
+    $set.name = body.name.trim();
   }
 
   if (body.categoryImage !== undefined) {
-    previousImagePublicId = existing.categoryImage?.publicId;
-    const imageParsed = parseCategoryImageUpload(body.categoryImage);
-    if (!imageParsed.ok) {
-      res.status(400).json({ error: imageParsed.error });
-      return;
-    }
-    try {
-      const uploaded = await uploadCategoryImage(id, imageParsed.data.dataUri);
-      orphanNewImagePublicId = uploaded.publicId;
-      update.categoryImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
-    } catch (err) {
-      console.error(err);
-      res.status(502).json({ error: 'Image upload failed' });
-      return;
+    if (body.categoryImage === null) {
+      if (existing.categoryImage?.publicId) {
+        previousImagePublicId = existing.categoryImage.publicId;
+      }
+      $unset.categoryImage = '';
+    } else {
+      previousImagePublicId = existing.categoryImage?.publicId;
+      const imageParsed = parseCategoryImageUpload(body.categoryImage);
+      if (!imageParsed.ok) {
+        jsonError(res, 400, imageParsed.error);
+        return;
+      }
+      try {
+        const uploaded = await uploadCategoryImage(id, imageParsed.data.dataUri);
+        orphanNewImagePublicId = uploaded.publicId;
+        $set.categoryImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
+      } catch (err) {
+        console.error(err);
+        jsonError(res, 502, 'Image upload failed');
+        return;
+      }
     }
   }
 
-  if (Object.keys(update).length === 0) {
-    res.status(400).json({ error: 'No valid fields to update' });
+  const mongoUpdate: Record<string, unknown> = {};
+  if (Object.keys($set).length > 0) {
+    mongoUpdate.$set = $set;
+  }
+  if (Object.keys($unset).length > 0) {
+    mongoUpdate.$unset = $unset;
+  }
+  if (Object.keys(mongoUpdate).length === 0) {
+    jsonError(res, 400, 'No valid fields to update');
     return;
   }
 
   try {
-    const doc = await Category.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true });
+    const doc = await Category.findByIdAndUpdate(id, mongoUpdate, { new: true, runValidators: true });
     if (!doc) {
       if (orphanNewImagePublicId) {
         void destroyImageByPublicId(orphanNewImagePublicId);
       }
-      res.status(404).json({ error: 'Category not found' });
+      jsonError(res, 404, 'Category not found');
       return;
     }
     if (previousImagePublicId) {
@@ -114,7 +131,7 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
       void destroyImageByPublicId(orphanNewImagePublicId);
     }
     if (isDuplicateKeyError(err)) {
-      res.status(409).json({ error: 'A category with this name already exists' });
+      jsonError(res, 409, 'A category with this name already exists');
       return;
     }
     throw err;
@@ -148,14 +165,13 @@ export const listAllCategories = async (_req: Request, res: Response): Promise<v
 export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   if (!isValidObjectId(id)) {
-    res.status(400).json({ error: 'Invalid category id' });
+    jsonError(res, 400, 'Invalid category id');
     return;
   }
 
   const inUse = await Recipe.countDocuments({ category: id });
   if (inUse > 0) {
-    res.status(409).json({
-      error: 'This category is used by one or more recipes and cannot be deleted',
+    jsonError(res, 409, 'This category is used by one or more recipes and cannot be deleted', {
       recipeCount: inUse,
     });
     return;
@@ -163,7 +179,7 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
 
   const existing = await Category.findById(id).lean();
   if (!existing) {
-    res.status(404).json({ error: 'Category not found' });
+    jsonError(res, 404, 'Category not found');
     return;
   }
 

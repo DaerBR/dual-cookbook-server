@@ -2,6 +2,7 @@ import type { Express, Request, Response } from 'express';
 import passport from 'passport';
 import { getEnv } from '../config/env';
 import { logoutSync } from '../utils/passportLogout';
+import { jsonError } from '../utils/jsonError';
 
 /** Origin allowed to receive postMessage from the OAuth popup (first entry in CORS_ORIGIN, or '*' if unset). */
 const getOAuthPopupPostMessageTarget = (): string => {
@@ -56,9 +57,7 @@ export const registerAuthRoutes = (app: Express): void => {
   );
 
   app.get('/auth/google/failure', (_req: Request, res: Response) => {
-    res.status(403).json({
-      error: 'Your Google account is not authorized to use this application.',
-    });
+    jsonError(res, 403, 'Your Google account is not authorized to use this application.');
   });
 
   app.get('/api/current_user', (req: Request, res: Response) => {

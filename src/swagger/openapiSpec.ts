@@ -423,17 +423,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
               description: 'Category is still referenced by one or more recipes',
               content: {
                 'application/json': {
-                  schema: {
-                    type: 'object',
-                    required: ['error', 'recipeCount'],
-                    properties: {
-                      error: {
-                        type: 'string',
-                        example: 'This category is used by one or more recipes and cannot be deleted',
-                      },
-                      recipeCount: { type: 'integer', minimum: 1 },
-                    },
-                  },
+                  schema: { $ref: '#/components/schemas/CategoryInUseError' },
                 },
               },
             },
@@ -462,8 +452,29 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
       schemas: {
         ErrorMessage: {
           type: 'object',
+          required: ['error'],
           properties: {
-            error: { type: 'string' },
+            error: {
+              type: 'object',
+              required: ['message'],
+              properties: {
+                message: { type: 'string' },
+              },
+            },
+          },
+        },
+        CategoryInUseError: {
+          type: 'object',
+          required: ['error', 'recipeCount'],
+          properties: {
+            error: {
+              type: 'object',
+              required: ['message'],
+              properties: {
+                message: { type: 'string' },
+              },
+            },
+            recipeCount: { type: 'integer', minimum: 1 },
           },
         },
         Pagination: {
@@ -501,7 +512,11 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             _id: { type: 'string' },
             name: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
-            categoryImage: { $ref: '#/components/schemas/RecipeImage' },
+            categoryImage: {
+              description: 'Absent or null when no image is stored.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImage' }],
+            },
           },
         },
         CategoryCreate: {
@@ -509,15 +524,24 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
           required: ['name'],
           properties: {
             name: { type: 'string' },
-            categoryImage: { $ref: '#/components/schemas/RecipeImageUpload' },
+            categoryImage: {
+              description: 'Optional. Omit or null to create without an image.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImageUpload' }],
+            },
           },
         },
         CategoryUpdate: {
           type: 'object',
-          description: 'Partial update; include at least one of `name` or `categoryImage`.',
+          description:
+            'Partial update; include at least one of `name` or `categoryImage`. Send `categoryImage: null` to remove the stored image (Cloudinary asset is deleted).',
           properties: {
             name: { type: 'string' },
-            categoryImage: { $ref: '#/components/schemas/RecipeImageUpload' },
+            categoryImage: {
+              description: 'Null clears the image; otherwise same upload payload as on create.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImageUpload' }],
+            },
           },
         },
         CategoryPage: {
@@ -565,7 +589,11 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             instructions: { type: 'string' },
             notes: { type: 'string' },
-            recipeImage: { $ref: '#/components/schemas/RecipeImage' },
+            recipeImage: {
+              description: 'Absent or null when no image is stored.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImage' }],
+            },
             createdBy: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
@@ -610,12 +638,17 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             instructions: { type: 'string' },
             notes: { type: 'string' },
-            recipeImage: { $ref: '#/components/schemas/RecipeImageUpload' },
+            recipeImage: {
+              description: 'Optional. Omit or null to create without an image.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImageUpload' }],
+            },
           },
         },
         RecipeUpdate: {
           type: 'object',
-          description: 'Partial update; include only fields to change.',
+          description:
+            'Partial update; include only fields to change. Send `recipeImage: null` to remove the stored image (Cloudinary asset is deleted).',
           properties: {
             name: { type: 'string' },
             category: { type: 'string' },
@@ -626,7 +659,11 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             instructions: { type: 'string' },
             notes: { type: 'string' },
-            recipeImage: { $ref: '#/components/schemas/RecipeImageUpload' },
+            recipeImage: {
+              description: 'Null clears the image; otherwise same upload payload as on create.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImageUpload' }],
+            },
           },
         },
       },
