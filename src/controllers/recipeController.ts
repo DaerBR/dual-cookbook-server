@@ -3,7 +3,7 @@ import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
-import { escapeRegex, parseRecipeStringList, parseRecipeImageUpload } from './utils';
+import { escapeRegex, parseRecipeIngredients, parseRecipeSteps, parseRecipeImageUpload } from './utils';
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
@@ -32,12 +32,12 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     return;
   }
 
-  const ingredientsResult = parseRecipeStringList(body.ingredients, { field: 'ingredients' });
+  const ingredientsResult = parseRecipeIngredients(body.ingredients);
   if (!ingredientsResult.ok) {
     jsonError(res, 400, ingredientsResult.error);
     return;
   }
-  const stepsResult = parseRecipeStringList(body.steps, { field: 'steps' });
+  const stepsResult = parseRecipeSteps(body.steps);
   if (!stepsResult.ok) {
     jsonError(res, 400, stepsResult.error);
     return;
@@ -117,7 +117,7 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     $set.description = typeof body.description === 'string' ? body.description.trim() : '';
   }
   if (body.steps !== undefined) {
-    const stepsResult = parseRecipeStringList(body.steps, { field: 'steps' });
+    const stepsResult = parseRecipeSteps(body.steps);
     if (!stepsResult.ok) {
       jsonError(res, 400, stepsResult.error);
       return;
@@ -125,7 +125,7 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     $set.steps = stepsResult.value;
   }
   if (body.ingredients !== undefined) {
-    const ingredientsResult = parseRecipeStringList(body.ingredients, { field: 'ingredients' });
+    const ingredientsResult = parseRecipeIngredients(body.ingredients);
     if (!ingredientsResult.ok) {
       jsonError(res, 400, ingredientsResult.error);
       return;

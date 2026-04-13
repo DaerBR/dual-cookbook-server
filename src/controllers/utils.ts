@@ -2,10 +2,6 @@ const MAX_RECIPE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const MAX_INGREDIENT_LENGTH = 255;
 
-type ParseRecipeStringListOk = { ok: true; value: string[] };
-type ParseRecipeStringListErr = { ok: false; error: string };
-export type ParseRecipeStringListResult = ParseRecipeStringListOk | ParseRecipeStringListErr;
-
 export type ParseRecipeImageUploadOk = { ok: true; data: { dataUri: string } };
 export type ParseRecipeImageUploadErr = { ok: false; error: string };
 export type ParseRecipeImageUploadResult = ParseRecipeImageUploadOk | ParseRecipeImageUploadErr;
@@ -97,15 +93,21 @@ export const isDuplicateKeyError = (err: unknown): boolean => {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000;
 };
 
+/** Shape passed to Mongoose for embedded ingredients (subdocument `_id` is generated on save). */
+export type ParsedRecipeIngredient = {
+  text: string;
+};
+
+type ParseRecipeIngredientsOk = { ok: true; value: ParsedRecipeIngredient[] };
+type ParseRecipeIngredientsErr = { ok: false; error: string };
+export type ParseRecipeIngredientsResult = ParseRecipeIngredientsOk | ParseRecipeIngredientsErr;
+
 /**
- * Parses `ingredients` or `steps`: non-empty array of trimmed non-empty strings.
- * Ingredients additionally enforce {@link MAX_INGREDIENT_LENGTH} per item.
+ * Parses `ingredients`: non-empty array of `{ text }` only; each `text` at most {@link MAX_INGREDIENT_LENGTH} chars.
+ * Create/update replace the full list; the server assigns new subdocument ids.
  */
-export const parseRecipeStringList = (
-  raw: unknown,
-  opts: { field: 'ingredients' | 'steps' },
-): ParseRecipeStringListResult => {
-  const { field } = opts;
+export const parseRecipeIngredients = (raw: unknown): ParseRecipeIngredientsResult => {
+  const field = 'ingredients';
   if (raw === undefined || raw === null) {
     return { ok: false, error: `${field} is required` };
   }
@@ -116,23 +118,68 @@ export const parseRecipeStringList = (
     return { ok: false, error: `${field} must contain at least one entry` };
   }
 
-  const value: string[] = [];
+  const value: ParsedRecipeIngredient[] = [];
   for (let i = 0; i < raw.length; i++) {
     const el = raw[i];
-    if (typeof el !== 'string') {
-      return { ok: false, error: `${field}[${i}] must be a string` };
+    if (el === null || typeof el !== 'object' || Array.isArray(el)) {
+      return { ok: false, error: `${field}[${i}] must be an object` };
     }
-    const trimmed = el.trim();
-    if (!trimmed) {
-      return { ok: false, error: `${field}[${i}] must be a non-empty string` };
+    const obj = el as Record<string, unknown>;
+    const textRaw = obj.text;
+    if (typeof textRaw !== 'string' || !textRaw.trim()) {
+      return { ok: false, error: `${field}[${i}].text must be a non-empty string` };
     }
-    if (field === 'ingredients' && trimmed.length > MAX_INGREDIENT_LENGTH) {
+    const text = textRaw.trim();
+    if (text.length > MAX_INGREDIENT_LENGTH) {
       return {
         ok: false,
-        error: `${field}[${i}] must be at most ${MAX_INGREDIENT_LENGTH} characters`,
+        error: `${field}[${i}].text must be at most ${MAX_INGREDIENT_LENGTH} characters`,
       };
     }
-    value.push(trimmed);
+    value.push({ text });
+  }
+
+  return { ok: true, value };
+};
+
+/** Shape passed to Mongoose for embedded steps (subdocument `_id` is generated on save). */
+export type ParsedRecipeStep = {
+  stepDescription: string;
+};
+
+type ParseRecipeStepsOk = { ok: true; value: ParsedRecipeStep[] };
+type ParseRecipeStepsErr = { ok: false; error: string };
+export type ParseRecipeStepsResult = ParseRecipeStepsOk | ParseRecipeStepsErr;
+
+/**
+ * Parses `steps`: non-empty array of `{ stepDescription }` only.
+ * Create/update always replace steps; the server assigns new subdocument ids.
+ */
+export const parseRecipeSteps = (raw: unknown): ParseRecipeStepsResult => {
+  const field = 'steps';
+  if (raw === undefined || raw === null) {
+    return { ok: false, error: `${field} is required` };
+  }
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: `${field} must be an array` };
+  }
+  if (raw.length < 1) {
+    return { ok: false, error: `${field} must contain at least one entry` };
+  }
+
+  const value: ParsedRecipeStep[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const el = raw[i];
+    if (el === null || typeof el !== 'object' || Array.isArray(el)) {
+      return { ok: false, error: `${field}[${i}] must be an object` };
+    }
+    const obj = el as Record<string, unknown>;
+    const descRaw = obj.stepDescription;
+    if (typeof descRaw !== 'string' || !descRaw.trim()) {
+      return { ok: false, error: `${field}[${i}].stepDescription must be a non-empty string` };
+    }
+
+    value.push({ stepDescription: descRaw.trim() });
   }
 
   return { ok: true, value };

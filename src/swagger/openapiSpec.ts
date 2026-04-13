@@ -576,6 +576,42 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
           },
         },
+        RecipeIngredientInput: {
+          type: 'object',
+          required: ['text'],
+          description:
+            'Create/update payload: only `text` (max 255 chars). The server assigns a new subdocument `id` on each save; send the full list on update to replace ingredients.',
+          properties: {
+            text: { type: 'string', maxLength: 255 },
+          },
+        },
+        RecipeIngredient: {
+          type: 'object',
+          required: ['id', 'text'],
+          description: 'Embedded ingredient as returned by the API (`_id` renamed to `id`).',
+          properties: {
+            id: { type: 'string', description: 'Subdocument ObjectId (hex)' },
+            text: { type: 'string', maxLength: 255 },
+          },
+        },
+        RecipeStepInput: {
+          type: 'object',
+          required: ['stepDescription'],
+          description:
+            'Create/update payload: only `stepDescription`. The server assigns a new subdocument `id` on each save; send the full list on update to replace steps.',
+          properties: {
+            stepDescription: { type: 'string' },
+          },
+        },
+        RecipeStep: {
+          type: 'object',
+          required: ['id', 'stepDescription'],
+          description: 'Embedded step as returned by the API (`_id` renamed to `id`).',
+          properties: {
+            id: { type: 'string', description: 'Subdocument ObjectId (hex)' },
+            stepDescription: { type: 'string' },
+          },
+        },
         Recipe: {
           type: 'object',
           properties: {
@@ -598,14 +634,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             ingredients: {
               type: 'array',
               minItems: 1,
-              items: { type: 'string', maxLength: 255 },
-              description: 'At least one ingredient line; each at most 255 characters.',
+              items: { $ref: '#/components/schemas/RecipeIngredient' },
+              description: 'Ordered ingredients; each item has `id` and `text` in API JSON.',
             },
             steps: {
               type: 'array',
               minItems: 1,
-              items: { type: 'string' },
-              description: 'Ordered steps; at least one entry; no per-step max length.',
+              items: { $ref: '#/components/schemas/RecipeStep' },
+              description: 'Ordered steps; each item has `id` and `stepDescription` in API JSON.',
             },
             recipeImage: {
               description: 'Absent or null when no image is stored.',
@@ -653,12 +689,12 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             ingredients: {
               type: 'array',
               minItems: 1,
-              items: { type: 'string', maxLength: 255 },
+              items: { $ref: '#/components/schemas/RecipeIngredientInput' },
             },
             steps: {
               type: 'array',
               minItems: 1,
-              items: { type: 'string' },
+              items: { $ref: '#/components/schemas/RecipeStepInput' },
             },
             recipeImage: {
               description: 'Optional. Omit or null to create without an image.',
@@ -678,12 +714,12 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             ingredients: {
               type: 'array',
               minItems: 1,
-              items: { type: 'string', maxLength: 255 },
+              items: { $ref: '#/components/schemas/RecipeIngredientInput' },
             },
             steps: {
               type: 'array',
               minItems: 1,
-              items: { type: 'string' },
+              items: { $ref: '#/components/schemas/RecipeStepInput' },
             },
             recipeImage: {
               description: 'Null clears the image; otherwise same upload payload as on create.',
