@@ -658,6 +658,11 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
           properties: {
             id: { type: 'string' },
             name: { type: 'string' },
+            recipeImage: {
+              description: 'Absent or null when no image is stored.',
+              nullable: true,
+              allOf: [{ $ref: '#/components/schemas/RecipeImage' }],
+            },
             category: {
               type: 'object',
               properties: {

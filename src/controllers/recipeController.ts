@@ -240,7 +240,7 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   const [total, rows] = await Promise.all([
     Recipe.countDocuments(filter),
     Recipe.find(filter)
-      .select('_id name category createdAt updatedAt')
+      .select('_id name category recipeImage createdAt updatedAt')
       .populate('category', 'name')
       .sort({ updatedAt: -1 })
       .skip(skip)
