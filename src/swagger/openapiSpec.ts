@@ -596,11 +596,17 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             },
             description: { type: 'string' },
             ingredients: {
-              type: 'string',
-              description: 'Plain text or HTML (e.g. rich text editor)',
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string', maxLength: 255 },
+              description: 'At least one ingredient line; each at most 255 characters.',
             },
-            instructions: { type: 'string' },
-            notes: { type: 'string' },
+            steps: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string' },
+              description: 'Ordered steps; at least one entry; no per-step max length.',
+            },
             recipeImage: {
               description: 'Absent or null when no image is stored.',
               nullable: true,
@@ -639,17 +645,21 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         },
         RecipeCreate: {
           type: 'object',
-          required: ['name', 'category', 'instructions'],
+          required: ['name', 'category', 'ingredients', 'steps'],
           properties: {
             name: { type: 'string' },
             category: { type: 'string', description: 'Category ObjectId' },
             description: { type: 'string' },
             ingredients: {
-              type: 'string',
-              description: 'Optional; plain text or HTML. Defaults to empty string.',
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string', maxLength: 255 },
             },
-            instructions: { type: 'string' },
-            notes: { type: 'string' },
+            steps: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string' },
+            },
             recipeImage: {
               description: 'Optional. Omit or null to create without an image.',
               nullable: true,
@@ -666,11 +676,15 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             category: { type: 'string' },
             description: { type: 'string' },
             ingredients: {
-              type: 'string',
-              description: 'Plain text or HTML',
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string', maxLength: 255 },
             },
-            instructions: { type: 'string' },
-            notes: { type: 'string' },
+            steps: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string' },
+            },
             recipeImage: {
               description: 'Null clears the image; otherwise same upload payload as on create.',
               nullable: true,

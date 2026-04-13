@@ -3,7 +3,7 @@ import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
-import { escapeRegex, parseIngredientsField, parseRecipeImageUpload } from './utils';
+import { escapeRegex, parseRecipeStringList, parseRecipeImageUpload } from './utils';
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
@@ -17,18 +17,12 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
   const body = req.body as Record<string, unknown>;
   const name = body.name;
   const categoryId = body.category;
-  const instructions = body.instructions;
-
   if (typeof name !== 'string' || !name.trim()) {
     jsonError(res, 400, 'name is required');
     return;
   }
   if (typeof categoryId !== 'string' || !isValidObjectId(categoryId)) {
     jsonError(res, 400, 'category must be a valid id');
-    return;
-  }
-  if (typeof instructions !== 'string' || !instructions.trim()) {
-    jsonError(res, 400, 'instructions is required');
     return;
   }
 
@@ -38,9 +32,14 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     return;
   }
 
-  const ingredientsResult = parseIngredientsField(body.ingredients, { required: false });
+  const ingredientsResult = parseRecipeStringList(body.ingredients, { field: 'ingredients' });
   if (!ingredientsResult.ok) {
     jsonError(res, 400, ingredientsResult.error);
+    return;
+  }
+  const stepsResult = parseRecipeStringList(body.steps, { field: 'steps' });
+  if (!stepsResult.ok) {
+    jsonError(res, 400, stepsResult.error);
     return;
   }
 
@@ -49,8 +48,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     category: categoryId,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
     ingredients: ingredientsResult.value,
-    instructions: instructions.trim(),
-    notes: typeof body.notes === 'string' ? body.notes.trim() : undefined,
+    steps: stepsResult.value,
     createdBy: req.user.id,
   });
 
@@ -118,24 +116,23 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
   if (body.description !== undefined) {
     $set.description = typeof body.description === 'string' ? body.description.trim() : '';
   }
-  if (body.instructions !== undefined) {
-    if (typeof body.instructions !== 'string' || !body.instructions.trim()) {
-      jsonError(res, 400, 'instructions must be a non-empty string');
+  if (body.steps !== undefined) {
+    const stepsResult = parseRecipeStringList(body.steps, { field: 'steps' });
+    if (!stepsResult.ok) {
+      jsonError(res, 400, stepsResult.error);
       return;
     }
-    $set.instructions = body.instructions.trim();
+    $set.steps = stepsResult.value;
   }
   if (body.ingredients !== undefined) {
-    const ingredientsResult = parseIngredientsField(body.ingredients, { required: true });
+    const ingredientsResult = parseRecipeStringList(body.ingredients, { field: 'ingredients' });
     if (!ingredientsResult.ok) {
       jsonError(res, 400, ingredientsResult.error);
       return;
     }
     $set.ingredients = ingredientsResult.value;
   }
-  if (body.notes !== undefined) {
-    $set.notes = typeof body.notes === 'string' ? body.notes.trim() : '';
-  }
+
 
   if (body.recipeImage !== undefined) {
     if (body.recipeImage === null) {

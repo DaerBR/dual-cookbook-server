@@ -14,10 +14,10 @@ export interface Recipe extends Document {
   name: string;
   category: Types.ObjectId;
   description?: string;
-  /** Plain text or HTML (e.g. from a rich text editor on the FE). */
-  ingredients: string;
-  instructions: string;
-  notes?: string;
+  /** One line per ingredient; each entry at most 255 characters. */
+  ingredients: string[];
+  /** Ordered cooking steps; no per-step length cap. */
+  steps: string[];
   recipeImage?: RecipeImage;
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -48,9 +48,34 @@ const recipeSchema = new Schema<Recipe>(
     name: { type: String, required: true, trim: true },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     description: { type: String, trim: true },
-    ingredients: { type: String, default: '' },
-    instructions: { type: String, required: true, trim: true },
-    notes: { type: String, trim: true },
+    ingredients: {
+      type: [{ type: String, trim: true, maxlength: 255 }],
+      required: true,
+      validate: {
+        validator(value: string[]) {
+          return (
+            Array.isArray(value) &&
+            value.length >= 1 &&
+            value.every((s) => typeof s === 'string' && s.length > 0)
+          );
+        },
+        message: 'At least one ingredient is required',
+      },
+    },
+    steps: {
+      type: [{ type: String, trim: true }],
+      required: true,
+      validate: {
+        validator(value: string[]) {
+          return (
+            Array.isArray(value) &&
+            value.length >= 1 &&
+            value.every((s) => typeof s === 'string' && s.length > 0)
+          );
+        },
+        message: 'At least one step is required',
+      },
+    },
     recipeImage: { type: recipeImageSchema, required: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'users', required: true },
     createdAt: { type: Date, default: Date.now },
