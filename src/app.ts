@@ -8,7 +8,7 @@ import './models/Category';
 import './models/Recipe';
 import './services/passport';
 import { registerAuthRoutes } from './routes/authRoutes';
-import { requireLogin } from './middlewares/requireLogin';
+import { requireLoginExceptSafeMethods } from './middlewares/requireLogin';
 import { recipeRouter } from './routes/recipeRoutes';
 import { categoryRouter } from './routes/categoryRoutes';
 import { setupSwagger } from './swagger/setupSwagger';
@@ -54,8 +54,8 @@ export const createApp = (): express.Application => {
   registerAuthRoutes(app);
   setupSwagger(app);
 
-  app.use('/api/recipes', requireLogin, recipeRouter);
-  app.use('/api/categories', requireLogin, categoryRouter);
+  app.use('/api/recipes', requireLoginExceptSafeMethods, recipeRouter);
+  app.use('/api/categories', requireLoginExceptSafeMethods, categoryRouter);
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const status =
