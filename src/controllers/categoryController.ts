@@ -77,8 +77,8 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
     $set.name = body.name.trim();
   }
 
-  if (body.categoryImage !== undefined) {
-    if (body.categoryImage === null) {
+  if (body.categoryImage !== undefined && body.categoryImage !== null) {
+    if (body.categoryImage === false) {
       if (existing.categoryImage?.publicId) {
         previousImagePublicId = existing.categoryImage.publicId;
       }

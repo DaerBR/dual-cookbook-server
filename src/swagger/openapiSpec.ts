@@ -534,13 +534,17 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         CategoryUpdate: {
           type: 'object',
           description:
-            'Partial update; include at least one of `name` or `categoryImage`. Send `categoryImage: null` to remove the stored image (Cloudinary asset is deleted).',
+            'Partial update; include at least one of `name` or `categoryImage`. Send `categoryImage: null` to leave the existing image unchanged. Send `categoryImage: false` to remove the stored image (Cloudinary asset is deleted).',
           properties: {
             name: { type: 'string' },
             categoryImage: {
-              description: 'Null clears the image; otherwise same upload payload as on create.',
+              description:
+                '`null`: keep current image unchanged. `false`: remove stored image. Otherwise same upload payload as on create.',
               nullable: true,
-              allOf: [{ $ref: '#/components/schemas/RecipeImageUpload' }],
+              oneOf: [
+                { type: 'boolean', enum: [false], description: 'Remove stored category image.' },
+                { $ref: '#/components/schemas/RecipeImageUpload' },
+              ],
             },
           },
         },
@@ -712,7 +716,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         RecipeUpdate: {
           type: 'object',
           description:
-            'Partial update; include only fields to change. Send `recipeImage: null` to remove the stored image (Cloudinary asset is deleted).',
+            'Partial update; include only fields to change. Send `recipeImage: null` to leave the existing image unchanged. Send `recipeImage: false` to remove the stored image (Cloudinary asset is deleted).',
           properties: {
             name: { type: 'string' },
             category: { type: 'string' },
@@ -728,9 +732,13 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
               items: { $ref: '#/components/schemas/RecipeStepInput' },
             },
             recipeImage: {
-              description: 'Null clears the image; otherwise same upload payload as on create.',
+              description:
+                '`null`: keep current image unchanged. `false`: remove stored recipe image. Otherwise same upload payload as on create.',
               nullable: true,
-              allOf: [{ $ref: '#/components/schemas/RecipeImageUpload' }],
+              oneOf: [
+                { type: 'boolean', enum: [false], description: 'Remove stored recipe image.' },
+                { $ref: '#/components/schemas/RecipeImageUpload' },
+              ],
             },
           },
         },

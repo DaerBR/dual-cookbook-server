@@ -134,8 +134,8 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
   }
 
 
-  if (body.recipeImage !== undefined) {
-    if (body.recipeImage === null) {
+  if (body.recipeImage !== undefined && body.recipeImage !== null) {
+    if (body.recipeImage === false) {
       if (existing.recipeImage?.publicId) {
         previousImagePublicId = existing.recipeImage.publicId;
       }
