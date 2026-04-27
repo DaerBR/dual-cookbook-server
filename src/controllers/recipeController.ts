@@ -43,6 +43,10 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     return;
   }
 
+  const sourceUrlRaw = body.sourceUrl;
+  const sourceUrl =
+    typeof sourceUrlRaw === 'string' && sourceUrlRaw.trim() ? sourceUrlRaw.trim() : undefined;
+
   const doc = await Recipe.create({
     name: name.trim(),
     category: categoryId,
@@ -50,6 +54,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     ingredients: ingredientsResult.value,
     steps: stepsResult.value,
     createdBy: req.user.id,
+    ...(sourceUrl !== undefined ? { sourceUrl } : {}),
   });
 
   const rawRecipeImage = body.recipeImage;
@@ -115,6 +120,21 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
   }
   if (body.description !== undefined) {
     $set.description = typeof body.description === 'string' ? body.description.trim() : '';
+  }
+  if (body.sourceUrl !== undefined) {
+    if (body.sourceUrl === null) {
+      $unset.sourceUrl = '';
+    } else if (typeof body.sourceUrl === 'string') {
+      const trimmed = body.sourceUrl.trim();
+      if (trimmed === '') {
+        $unset.sourceUrl = '';
+      } else {
+        $set.sourceUrl = trimmed;
+      }
+    } else {
+      jsonError(res, 400, 'sourceUrl must be a string or null');
+      return;
+    }
   }
   if (body.steps !== undefined) {
     const stepsResult = parseRecipeSteps(body.steps);
