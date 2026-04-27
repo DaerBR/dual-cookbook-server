@@ -29,6 +29,7 @@ export interface Recipe extends Document {
   description?: string;
   /** Ordered ingredients; writes replace the whole array (new subdocument ids each time). */
   ingredients: RecipeIngredient[];
+  sourceUrl?: string;
   /** Ordered steps; writes replace the whole array (new subdocument ids each time). */
   steps: RecipeStep[];
   recipeImage?: RecipeImage;
@@ -70,37 +71,36 @@ const recipeStepSchema = new Schema<Pick<RecipeStep, 'stepDescription'>>(
   { _id: true },
 );
 
-const recipeSchema = new Schema<Recipe>(
-  {
-    name: { type: String, required: true, trim: true },
-    category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
-    description: { type: String, trim: true },
-    ingredients: {
-      type: [recipeIngredientSchema],
-      required: true,
-      validate: {
-        validator(value: unknown[]) {
-          return Array.isArray(value) && value.length >= 1;
-        },
-        message: 'At least one ingredient is required',
+const recipeSchema = new Schema<Recipe>({
+  name: { type: String, required: true, trim: true },
+  category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+  description: { type: String, trim: true },
+  ingredients: {
+    type: [recipeIngredientSchema],
+    required: true,
+    validate: {
+      validator(value: unknown[]) {
+        return Array.isArray(value) && value.length >= 1;
       },
+      message: 'At least one ingredient is required',
     },
-    steps: {
-      type: [recipeStepSchema],
-      required: true,
-      validate: {
-        validator(value: unknown[]) {
-          return Array.isArray(value) && value.length >= 1;
-        },
-        message: 'At least one step is required',
-      },
-    },
-    recipeImage: { type: recipeImageSchema, required: false },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'users', required: true },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
   },
-);
+  steps: {
+    type: [recipeStepSchema],
+    required: true,
+    validate: {
+      validator(value: unknown[]) {
+        return Array.isArray(value) && value.length >= 1;
+      },
+      message: 'At least one step is required',
+    },
+  },
+  recipeImage: { type: recipeImageSchema, required: false },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'users', required: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  sourceUrl: { type: String, required: false, trim: true },
+});
 
 recipeSchema.set('toJSON', {
   virtuals: true,
@@ -117,5 +117,4 @@ recipeSchema.pre('save', function setUpdatedAt(this: Recipe) {
   this.updatedAt = new Date();
 });
 
-export const Recipe: Model<Recipe> =
-  mongoose.models.Recipe ?? mongoose.model<Recipe>('Recipe', recipeSchema);
+export const Recipe: Model<Recipe> = mongoose.models.Recipe ?? mongoose.model<Recipe>('Recipe', recipeSchema);
