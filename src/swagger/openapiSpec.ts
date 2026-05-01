@@ -173,6 +173,20 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
               description: 'Case-insensitive partial match on recipe name',
               schema: { type: 'string' },
             },
+            {
+              name: 'order',
+              in: 'query',
+              description:
+                'Sort by `updatedAt`: `desc` (default, newest first) or `asc` (oldest first)',
+              schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+            },
+            {
+              name: 'recipeAuthor',
+              in: 'query',
+              description:
+                'Filter by creator: MongoDB user ObjectId (`createdBy`). Prefer ids over emails—same hardcoding in the UI, no lookup endpoint required.',
+              schema: { type: 'string' },
+            },
           ],
           security: [{ cookieAuth: [] }],
           responses: {
@@ -184,6 +198,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
                 },
               },
             },
+            '400': { description: 'Invalid query (e.g. order, category, recipeAuthor)' },
             '401': { description: 'Not authenticated' },
           },
         },

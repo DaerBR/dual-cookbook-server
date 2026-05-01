@@ -51,7 +51,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     name: name.trim(),
     category: categoryId,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
-    ingredients: ingredientsResult.value,
+    ...(ingredientsResult.value !== undefined ? { ingredients: ingredientsResult.value } : {}),
     steps: stepsResult.value,
     createdBy: req.user.id,
     ...(sourceUrl !== undefined ? { sourceUrl } : {}),
@@ -145,12 +145,18 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     $set.steps = stepsResult.value;
   }
   if (body.ingredients !== undefined) {
-    const ingredientsResult = parseRecipeIngredients(body.ingredients);
-    if (!ingredientsResult.ok) {
-      jsonError(res, 400, ingredientsResult.error);
-      return;
+    if (body.ingredients === null) {
+      $unset.ingredients = '';
+    } else {
+      const ingredientsResult = parseRecipeIngredients(body.ingredients);
+      if (!ingredientsResult.ok) {
+        jsonError(res, 400, ingredientsResult.error);
+        return;
+      }
+      if (ingredientsResult.value !== undefined) {
+        $set.ingredients = ingredientsResult.value;
+      }
     }
-    $set.ingredients = ingredientsResult.value;
   }
 
 
@@ -245,6 +251,21 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
   const categoryFilter = typeof req.query.category === 'string' ? req.query.category.trim() : '';
 
+  const orderRaw =
+    typeof req.query.order === 'string' ? req.query.order.trim().toLowerCase() : '';
+  let updatedAtSort: 1 | -1 = -1;
+  if (orderRaw === '' || orderRaw === 'desc') {
+    updatedAtSort = -1;
+  } else if (orderRaw === 'asc') {
+    updatedAtSort = 1;
+  } else {
+    jsonError(res, 400, 'order must be asc or desc');
+    return;
+  }
+
+  const recipeAuthorRaw =
+    typeof req.query.recipeAuthor === 'string' ? req.query.recipeAuthor.trim() : '';
+
   const filter: Record<string, unknown> = {};
   if (search) {
     filter.name = { $regex: escapeRegex(search), $options: 'i' };
@@ -256,13 +277,20 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
     }
     filter.category = categoryFilter;
   }
+  if (recipeAuthorRaw) {
+    if (!isValidObjectId(recipeAuthorRaw)) {
+      jsonError(res, 400, 'recipeAuthor must be a valid user id');
+      return;
+    }
+    filter.createdBy = recipeAuthorRaw;
+  }
 
   const [total, rows] = await Promise.all([
     Recipe.countDocuments(filter),
     Recipe.find(filter)
       .select('_id name category description recipeImage createdAt updatedAt')
       .populate('category', 'name')
-      .sort({ updatedAt: -1 })
+      .sort({ updatedAt: updatedAtSort })
       .skip(skip)
       .limit(limit)
       .lean(),

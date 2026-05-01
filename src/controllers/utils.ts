@@ -98,24 +98,21 @@ export type ParsedRecipeIngredient = {
   text: string;
 };
 
-type ParseRecipeIngredientsOk = { ok: true; value: ParsedRecipeIngredient[] };
+type ParseRecipeIngredientsOk = { ok: true; value: ParsedRecipeIngredient[] | undefined };
 type ParseRecipeIngredientsErr = { ok: false; error: string };
 export type ParseRecipeIngredientsResult = ParseRecipeIngredientsOk | ParseRecipeIngredientsErr;
 
 /**
- * Parses `ingredients`: non-empty array of `{ text }` only; each `text` at most {@link MAX_INGREDIENT_LENGTH} chars.
- * Create/update replace the full list; the server assigns new subdocument ids.
+ * Parses optional `ingredients`: array of `{ text }`; each `text` at most {@link MAX_INGREDIENT_LENGTH} chars.
+ * Omit (`undefined` / `null`) means no ingredients in the payload. Create/update replace the full list when present.
  */
 export const parseRecipeIngredients = (raw: unknown): ParseRecipeIngredientsResult => {
   const field = 'ingredients';
   if (raw === undefined || raw === null) {
-    return { ok: false, error: `${field} is required` };
+    return { ok: true, value: undefined };
   }
   if (!Array.isArray(raw)) {
     return { ok: false, error: `${field} must be an array` };
-  }
-  if (raw.length < 1) {
-    return { ok: false, error: `${field} must contain at least one entry` };
   }
 
   const value: ParsedRecipeIngredient[] = [];
