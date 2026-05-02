@@ -1,3 +1,5 @@
+import { isValidObjectId } from '../utils/mongo';
+
 const MAX_RECIPE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const MAX_INGREDIENT_LENGTH = 255;
@@ -137,6 +139,35 @@ export const parseRecipeIngredients = (raw: unknown): ParseRecipeIngredientsResu
   }
 
   return { ok: true, value };
+};
+
+type ParseRecipeCategoriesOk = { ok: true; value: string[] };
+type ParseRecipeCategoriesErr = { ok: false; error: string };
+export type ParseRecipeCategoriesResult = ParseRecipeCategoriesOk | ParseRecipeCategoriesErr;
+
+/**
+ * Parses `categories`: non-empty array of distinct category ObjectId strings.
+ */
+export const parseRecipeCategories = (raw: unknown): ParseRecipeCategoriesResult => {
+  const field = 'categories';
+  if (raw === undefined || raw === null) {
+    return { ok: false, error: `${field} is required` };
+  }
+  if (!Array.isArray(raw)) {
+    return { ok: false, error: `${field} must be an array` };
+  }
+  if (raw.length < 1) {
+    return { ok: false, error: 'At least one category is required' };
+  }
+  const unique = new Set<string>();
+  for (let i = 0; i < raw.length; i++) {
+    const el = raw[i];
+    if (typeof el !== 'string' || !isValidObjectId(el)) {
+      return { ok: false, error: `${field}[${i}] must be a valid id` };
+    }
+    unique.add(el);
+  }
+  return { ok: true, value: [...unique] };
 };
 
 /** Shape passed to Mongoose for embedded steps (subdocument `_id` is generated on save). */

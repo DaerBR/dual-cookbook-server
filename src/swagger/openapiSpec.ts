@@ -181,10 +181,11 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
             { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
             {
-              name: 'category',
+              name: 'categories',
               in: 'query',
-              description: 'Filter by category ObjectId',
-              schema: { type: 'string' },
+              description:
+                'Optional. Comma-separated category ObjectIds. Returns recipes that include at least one of the given categories.',
+              schema: { type: 'string', example: '507f1f77bcf86cd799439011,507f191e810c19729de860ea' },
             },
             {
               name: 'search',
@@ -217,7 +218,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
                 },
               },
             },
-            '400': { description: 'Invalid query (e.g. order, category, recipeAuthor)' },
+            '400': { description: 'Invalid query (e.g. order, categories, recipeAuthor)' },
             '401': { description: 'Not authenticated' },
           },
         },
@@ -650,23 +651,26 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             stepDescription: { type: 'string' },
           },
         },
+        CategoryRef: {
+          type: 'object',
+          description: 'Populated category (`_id` exposed as `id` in JSON).',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+          },
+        },
         Recipe: {
           type: 'object',
           properties: {
             id: { type: 'string', description: 'MongoDB document id (hex string)' },
             name: { type: 'string' },
-            category: {
-              description: 'Category id string, or populated `{ id, name }`',
-              oneOf: [
-                { type: 'string' },
-                {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'string' },
-                    name: { type: 'string' },
-                  },
-                },
-              ],
+            categories: {
+              type: 'array',
+              minItems: 1,
+              description: 'Category id strings, or populated category objects',
+              items: {
+                oneOf: [{ type: 'string' }, { $ref: '#/components/schemas/CategoryRef' }],
+              },
             },
             description: { type: 'string' },
             ingredients: {
@@ -702,12 +706,10 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
               nullable: true,
               allOf: [{ $ref: '#/components/schemas/RecipeImage' }],
             },
-            category: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                name: { type: 'string' },
-              },
+            categories: {
+              type: 'array',
+              minItems: 1,
+              items: { $ref: '#/components/schemas/CategoryRef' },
             },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
@@ -725,10 +727,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         },
         RecipeCreate: {
           type: 'object',
-          required: ['name', 'category', 'ingredients', 'steps'],
+          required: ['name', 'categories', 'ingredients', 'steps'],
           properties: {
             name: { type: 'string' },
-            category: { type: 'string', description: 'Category ObjectId' },
+            categories: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string', description: 'Category ObjectId' },
+            },
             description: { type: 'string' },
             ingredients: {
               type: 'array',
@@ -753,7 +759,11 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
             'Partial update; include only fields to change. Send `recipeImage: null` to leave the existing image unchanged. Send `recipeImage: false` to remove the stored image (Cloudinary asset is deleted).',
           properties: {
             name: { type: 'string' },
-            category: { type: 'string' },
+            categories: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string', description: 'Category ObjectId' },
+            },
             description: { type: 'string' },
             ingredients: {
               type: 'array',

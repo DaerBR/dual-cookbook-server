@@ -3,7 +3,13 @@ import { Recipe } from '../models/Recipe';
 import { Category } from '../models/Category';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
-import { escapeRegex, parseRecipeIngredients, parseRecipeSteps, parseRecipeImageUpload } from './utils';
+import {
+  escapeRegex,
+  parseRecipeCategories,
+  parseRecipeIngredients,
+  parseRecipeSteps,
+  parseRecipeImageUpload,
+} from './utils';
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
@@ -16,19 +22,20 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
 
   const body = req.body as Record<string, unknown>;
   const name = body.name;
-  const categoryId = body.category;
   if (typeof name !== 'string' || !name.trim()) {
     jsonError(res, 400, 'name is required');
     return;
   }
-  if (typeof categoryId !== 'string' || !isValidObjectId(categoryId)) {
-    jsonError(res, 400, 'category must be a valid id');
+
+  const categoriesResult = parseRecipeCategories(body.categories);
+  if (!categoriesResult.ok) {
+    jsonError(res, 400, categoriesResult.error);
     return;
   }
-
-  const categoryExists = await Category.exists({ _id: categoryId });
-  if (!categoryExists) {
-    jsonError(res, 400, 'Category does not exist');
+  const categoryIds = categoriesResult.value;
+  const foundCount = await Category.countDocuments({ _id: { $in: categoryIds } });
+  if (foundCount !== categoryIds.length) {
+    jsonError(res, 400, 'One or more categories do not exist');
     return;
   }
 
@@ -49,7 +56,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
 
   const doc = await Recipe.create({
     name: name.trim(),
-    category: categoryId,
+    categories: categoryIds,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
     ...(ingredientsResult.value !== undefined ? { ingredients: ingredientsResult.value } : {}),
     steps: stepsResult.value,
@@ -106,17 +113,19 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
     }
     $set.name = body.name.trim();
   }
-  if (body.category !== undefined) {
-    if (typeof body.category !== 'string' || !isValidObjectId(body.category)) {
-      jsonError(res, 400, 'category must be a valid id');
+  if (body.categories !== undefined) {
+    const categoriesResult = parseRecipeCategories(body.categories);
+    if (!categoriesResult.ok) {
+      jsonError(res, 400, categoriesResult.error);
       return;
     }
-    const categoryExists = await Category.exists({ _id: body.category });
-    if (!categoryExists) {
-      jsonError(res, 400, 'Category does not exist');
+    const categoryIds = categoriesResult.value;
+    const foundCount = await Category.countDocuments({ _id: { $in: categoryIds } });
+    if (foundCount !== categoryIds.length) {
+      jsonError(res, 400, 'One or more categories do not exist');
       return;
     }
-    $set.category = body.category;
+    $set.categories = categoryIds;
   }
   if (body.description !== undefined) {
     $set.description = typeof body.description === 'string' ? body.description.trim() : '';
@@ -238,7 +247,9 @@ export const getRecipeById = async (req: Request, res: Response): Promise<void> 
     jsonError(res, 400, 'Invalid recipe id');
     return;
   }
-  const doc = await Recipe.findById(id).populate('category', 'name').populate('createdBy', 'displayName email');
+  const doc = await Recipe.findById(id)
+    .populate('categories', 'name')
+    .populate('createdBy', 'displayName email');
   if (!doc) {
     jsonError(res, 404, 'Recipe not found');
     return;
@@ -249,7 +260,11 @@ export const getRecipeById = async (req: Request, res: Response): Promise<void> 
 export const listRecipesTable = async (req: Request, res: Response): Promise<void> => {
   const { page, limit, skip } = parsePagination(req.query);
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-  const categoryFilter = typeof req.query.category === 'string' ? req.query.category.trim() : '';
+  const categoriesQueryRaw = req.query.categories;
+  const categoryIdsFromQuery =
+    typeof categoriesQueryRaw === 'string' && categoriesQueryRaw.trim()
+      ? [...new Set(categoriesQueryRaw.split(',').map((s) => s.trim()).filter(Boolean))]
+      : [];
 
   const orderRaw =
     typeof req.query.order === 'string' ? req.query.order.trim().toLowerCase() : '';
@@ -270,12 +285,14 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   if (search) {
     filter.name = { $regex: escapeRegex(search), $options: 'i' };
   }
-  if (categoryFilter) {
-    if (!isValidObjectId(categoryFilter)) {
-      jsonError(res, 400, 'category filter must be a valid ObjectId');
-      return;
+  if (categoryIdsFromQuery.length > 0) {
+    for (const cid of categoryIdsFromQuery) {
+      if (!isValidObjectId(cid)) {
+        jsonError(res, 400, 'categories query must be comma-separated valid ObjectIds');
+        return;
+      }
     }
-    filter.category = categoryFilter;
+    filter.categories = { $in: categoryIdsFromQuery };
   }
   if (recipeAuthorRaw) {
     if (!isValidObjectId(recipeAuthorRaw)) {
@@ -288,8 +305,8 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   const [total, rows] = await Promise.all([
     Recipe.countDocuments(filter),
     Recipe.find(filter)
-      .select('_id name category description recipeImage createdAt updatedAt')
-      .populate('category', 'name')
+      .select('_id name categories description recipeImage createdAt updatedAt')
+      .populate('categories', 'name')
       .sort({ updatedAt: updatedAtSort })
       .skip(skip)
       .limit(limit)

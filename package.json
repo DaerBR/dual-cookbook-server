@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "server": "nodemon --exec tsx src/index.ts"
+    "server": "nodemon --exec tsx src/index.ts",
+    "migrate:recipe-categories": "tsx scripts/migrate-recipe-categories.ts",
+    "mongo:dump": "tsx scripts/mongo-dump.ts"
   },
   "author": "Gennadii Guliakov",
   "license": "ISC",

@@ -25,7 +25,8 @@ export interface RecipeStep {
  */
 export interface Recipe extends Document {
   name: string;
-  category: Types.ObjectId;
+  /** At least one category id (see schema validation). */
+  categories: Types.ObjectId[];
   description?: string;
   /** Ordered ingredients; writes replace the whole array (new subdocument ids each time). */
   ingredients?: RecipeIngredient[];
@@ -44,7 +45,7 @@ export interface Recipe extends Document {
 export interface RecipeTableRow {
   id: string;
   name: string;
-  category: Types.ObjectId;
+  categories: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,7 +74,16 @@ const recipeStepSchema = new Schema<Pick<RecipeStep, 'stepDescription'>>(
 
 const recipeSchema = new Schema<Recipe>({
   name: { type: String, required: true, trim: true },
-  category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+  categories: {
+    type: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
+    required: true,
+    validate: {
+      validator(value: unknown[]) {
+        return Array.isArray(value) && value.length >= 1;
+      },
+      message: 'At least one category is required',
+    },
+  },
   description: { type: String, trim: true },
   ingredients: {
     type: [recipeIngredientSchema],
@@ -104,7 +114,7 @@ recipeSchema.set('toObject', {
   transform: (_doc, ret) => renameMongoIdsForClient(ret),
 });
 
-recipeSchema.index({ category: 1, createdAt: -1 });
+recipeSchema.index({ categories: 1, createdAt: -1 });
 
 recipeSchema.pre('save', function setUpdatedAt(this: Recipe) {
   this.updatedAt = new Date();

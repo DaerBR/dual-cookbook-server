@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 .idea
 .DS_Store
+
+# Local mongodump archives (npm run mongo:dump)
+mongo-backups/

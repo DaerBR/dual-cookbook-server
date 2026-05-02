@@ -170,7 +170,7 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
     return;
   }
 
-  const inUse = await Recipe.countDocuments({ category: id });
+  const inUse = await Recipe.countDocuments({ categories: id });
   if (inUse > 0) {
     jsonError(res, 409, 'This category is used by one or more recipes and cannot be deleted', {
       recipeCount: inUse,
