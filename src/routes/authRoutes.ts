@@ -1,25 +1,53 @@
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import passport from 'passport';
-import { getEnv } from '../config/env';
+import { getCorsOriginAllowlist } from '../config/corsOrigins';
 import { logoutSync } from '../utils/passportLogout';
 import { jsonError } from '../utils/jsonError';
 
-/** Origin allowed to receive postMessage from the OAuth popup (first entry in CORS_ORIGIN, or '*' if unset). */
-const getOAuthPopupPostMessageTarget = (): string => {
-  const first = getEnv()
-      .CORS_ORIGIN?.split(',')
-      .map((s) => s.trim())
-      .find(Boolean);
-  return first ?? '*';
+/**
+ * `postMessage` second argument: validated OAuth `state` (from `?return_origin=` on `/auth/google`) if it
+ * is in the CORS allowlist, else the first allowlisted origin, else `*`.
+ */
+const resolvePostMessageTarget = (req: Request): string => {
+  const allowlist = getCorsOriginAllowlist();
+  const fromOAuth = typeof req.query.state === 'string' ? req.query.state.trim() : '';
+  if (fromOAuth && allowlist.includes(fromOAuth)) {
+    return fromOAuth;
+  }
+  if (allowlist.length > 0) {
+    return allowlist[0]!;
+  }
+  return '*';
+};
+
+const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
+  const allowlist = getCorsOriginAllowlist();
+  const raw = req.query.return_origin;
+  const returnOrigin = typeof raw === 'string' ? raw.trim() : undefined;
+
+  if (returnOrigin) {
+    if (allowlist.length === 0) {
+      jsonError(res, 400, 'return_origin requires CORS_ORIGIN to be set');
+      return;
+    }
+    if (!allowlist.includes(returnOrigin)) {
+      jsonError(res, 400, 'Invalid return_origin');
+      return;
+    }
+  }
+
+  const authOptions: { scope: string[]; state?: string } = {
+    scope: ['profile', 'email'],
+  };
+  if (returnOrigin) {
+    authOptions.state = returnOrigin;
+  }
+
+  passport.authenticate('google', authOptions)(req, res, next);
 };
 
 export const registerAuthRoutes = (app: Express): void => {
-  app.get(
-      '/auth/google',
-      passport.authenticate('google', {
-        scope: ['profile', 'email'],
-      }),
-  );
+  app.get('/auth/google', startGoogleAuth);
 
   app.get(
       '/auth/google/callback',
@@ -39,7 +67,7 @@ export const registerAuthRoutes = (app: Express): void => {
           email: user.email,
           createdAt: user.createdAt,
         };
-        const targetOrigin = getOAuthPopupPostMessageTarget();
+        const targetOrigin = resolvePostMessageTarget(req);
         const payloadJson = JSON.stringify(payload);
 
         res.type('html').send(`<script>

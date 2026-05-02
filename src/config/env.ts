@@ -13,7 +13,7 @@ const envSchema = z.object({
   GOOGLE_CALLBACK_BASE: z.string().url().optional(),
   /** Comma-separated list; defaults to the two family accounts. */
   ALLOWED_EMAILS: z.string().optional(),
-  /** Optional single origin for browser clients (e.g. http://localhost:5173). Omit to reflect request origin. */
+  /** Optional comma-separated exact origins for browser clients + OAuth popup target (e.g. `http://localhost:5173,https://app.example.com`). Omit to reflect any origin in CORS. */
   CORS_ORIGIN: z.string().optional(),
   CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),

@@ -2,6 +2,7 @@ import express from 'express';
 import cookieSession from 'cookie-session';
 import passport from 'passport';
 import cors from 'cors';
+import { getCorsOriginAllowlist } from './config/corsOrigins';
 import { getEnv } from './config/env';
 import './models/User';
 import './models/Category';
@@ -25,7 +26,8 @@ export const createApp = (): express.Application => {
     app.set('trust proxy', 1);
   }
 
-  const corsOrigin = env.CORS_ORIGIN ? env.CORS_ORIGIN.split(',').map((s) => s.trim()) : true;
+  const allowlist = getCorsOriginAllowlist();
+  const corsOrigin = allowlist.length > 0 ? allowlist : true;
 
   app.use(cors({ origin: corsOrigin, credentials: true }));
   /** Default Express JSON limit is 100kb; base64 image payloads exceed that quickly (see `MAX_RECIPE_IMAGE_BYTES` in controllers). */

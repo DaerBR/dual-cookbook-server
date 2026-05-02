@@ -12,9 +12,9 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
       description: [
         'Family cookbook API: Google OAuth, then session cookie `session` for `/api/*` routes.',
         '',
-        '**SPA (cross-origin):** Set server `CORS_ORIGIN` to your frontend origin (exact URL, e.g. `http://localhost:5174`). The browser must send cookies: `axios` → `withCredentials: true`, `fetch` → `credentials: "include"`. In production the session cookie uses `SameSite=None; Secure`.',
+        '**SPA (cross-origin):** Set server `CORS_ORIGIN` to one or more comma-separated exact origins (e.g. `http://localhost:5174,https://app.example.com`). The browser must send cookies: `axios` → `withCredentials: true`, `fetch` → `credentials: "include"`. In production the session cookie uses `SameSite=None; Secure`.',
         '',
-        '**OAuth callback:** On success, returns **HTML** (not JSON) that runs in a popup and `postMessage`s `{ type: "GOOGLE_AUTH_SUCCESS", payload }` to `window.opener` (target = first `CORS_ORIGIN` or `*`).',
+        '**OAuth popup:** Start Google login at `/auth/google?return_origin=<origin>` where `<origin>` is listed in `CORS_ORIGIN`; that origin receives `postMessage` on success. If `return_origin` is omitted, the first entry in `CORS_ORIGIN` is used; if `CORS_ORIGIN` is unset, `*` is used.',
         '',
         '**Swagger “Try it out”:** Cookie auth only works when the UI is on the **same site** as the API or you paste a `Cookie` header; cross-origin logins from here are limited.',
       ].join('\n'),
@@ -50,8 +50,27 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         get: {
           tags: ['Auth'],
           summary: 'Start Google OAuth',
+          description:
+            'Optional query `return_origin`: exact frontend origin (must appear in `CORS_ORIGIN`). Passed through OAuth `state` so the callback HTML `postMessage`s to that origin. Omit to use the first `CORS_ORIGIN` entry.',
+          parameters: [
+            {
+              name: 'return_origin',
+              in: 'query',
+              required: false,
+              schema: { type: 'string', example: 'http://localhost:5174' },
+              description: 'Must match an entry in server `CORS_ORIGIN` when set',
+            },
+          ],
           responses: {
             '302': { description: 'Redirect to Google' },
+            '400': {
+              description: 'Bad request (e.g. invalid `return_origin`, or `return_origin` without `CORS_ORIGIN`)',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorMessage' },
+                },
+              },
+            },
           },
         },
       },
@@ -74,7 +93,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
               in: 'query',
               required: false,
               schema: { type: 'string' },
-              description: 'OAuth state (set by Passport)',
+              description: 'OAuth state: echoed from `return_origin` on `/auth/google` when set',
             },
           ],
           responses: {
