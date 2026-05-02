@@ -7,6 +7,8 @@ import { jsonError } from '../utils/jsonError';
 /**
  * `postMessage` second argument: validated OAuth `state` (from `?return_origin=` on `/auth/google`) if it
  * is in the CORS allowlist, else the first allowlisted origin, else `*`.
+ *
+ * Important: the target string must match `window.opener`'s origin or the browser drops the message.
  */
 const resolvePostMessageTarget = (req: Request): string => {
   const allowlist = getCorsOriginAllowlist();
@@ -20,10 +22,30 @@ const resolvePostMessageTarget = (req: Request): string => {
   return '*';
 };
 
+const getOriginFromReferer = (req: Request): string | undefined => {
+  const referer = req.get('referer');
+  if (!referer) {
+    return undefined;
+  }
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return undefined;
+  }
+};
+
 const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
   const allowlist = getCorsOriginAllowlist();
   const raw = req.query.return_origin;
-  const returnOrigin = typeof raw === 'string' ? raw.trim() : undefined;
+  let returnOrigin = typeof raw === 'string' ? raw.trim() : undefined;
+
+  /** Without OAuth `state`, callback falls back to the *first* CORS origin — wrong for hosted SPA if localhost is listed first. Prefer Referer when it matches the allowlist. */
+  if (!returnOrigin && allowlist.length > 0) {
+    const fromReferer = getOriginFromReferer(req);
+    if (fromReferer && allowlist.includes(fromReferer)) {
+      returnOrigin = fromReferer;
+    }
+  }
 
   if (returnOrigin) {
     if (allowlist.length === 0) {

@@ -14,7 +14,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
         '',
         '**SPA (cross-origin):** Set server `CORS_ORIGIN` to one or more comma-separated exact origins (e.g. `http://localhost:5174,https://app.example.com`). The browser must send cookies: `axios` → `withCredentials: true`, `fetch` → `credentials: "include"`. In production the session cookie uses `SameSite=None; Secure`.',
         '',
-        '**OAuth popup:** Start Google login at `/auth/google?return_origin=<origin>` where `<origin>` is listed in `CORS_ORIGIN`; that origin receives `postMessage` on success. If `return_origin` is omitted, the first entry in `CORS_ORIGIN` is used; if `CORS_ORIGIN` is unset, `*` is used.',
+        '**OAuth popup:** For `postMessage` to reach the opener, the callback must use that tab\'s exact origin. Prefer `/auth/google?return_origin=<origin>` (must be in `CORS_ORIGIN`). If omitted, the server may infer the origin from the `Referer` when it matches the allowlist; otherwise the first `CORS_ORIGIN` entry is used (so avoid listing localhost first if the hosted app does not pass `return_origin`). If `CORS_ORIGIN` is unset, `*` is used.',
         '',
         '**Swagger “Try it out”:** Cookie auth only works when the UI is on the **same site** as the API or you paste a `Cookie` header; cross-origin logins from here are limited.',
       ].join('\n'),
@@ -51,7 +51,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => {
           tags: ['Auth'],
           summary: 'Start Google OAuth',
           description:
-            'Optional query `return_origin`: exact frontend origin (must appear in `CORS_ORIGIN`). Passed through OAuth `state` so the callback HTML `postMessage`s to that origin. Omit to use the first `CORS_ORIGIN` entry.',
+            'Exact frontend origin (must appear in `CORS_ORIGIN`), passed through OAuth `state` so `postMessage` targets the opener. Recommended when multiple origins are allowlisted. If omitted, `Referer` may be used when it matches the allowlist; otherwise the first `CORS_ORIGIN` entry is used.',
           parameters: [
             {
               name: 'return_origin',
