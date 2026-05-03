@@ -9,6 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "server": "nodemon --exec tsx src/index.ts",
     "migrate:recipe-categories": "tsx scripts/migrate-recipe-categories.ts",
+    "import:recipes": "tsx scripts/import-recipes-from-json.ts",
     "mongo:dump": "tsx scripts/mongo-dump.ts"
   },
   "author": "Gennadii Guliakov",
