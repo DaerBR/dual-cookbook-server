@@ -7,21 +7,38 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+const normalizeMongoUri = (raw: string): string => {
+  const trimmed = raw.trim();
+  const unquoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+      ? trimmed.slice(1, -1)
+      : trimmed;
+  if (!/^mongodb(\+srv)?:\/\//.test(unquoted)) {
+    console.error('MONGO_URI must start with mongodb:// or mongodb+srv://');
+    process.exit(1);
+  }
+  return unquoted;
+};
+
 const main = (): void => {
-  const uri = process.env.MONGO_URI;
-  if (!uri?.trim()) {
+  const rawUri = process.env.MONGO_URI;
+  if (!rawUri?.trim()) {
     console.error('Set MONGO_URI in .env (same as the API).');
     process.exit(1);
   }
+  const uri = normalizeMongoUri(rawUri);
 
   const dir = path.join(process.cwd(), 'mongo-backups');
   fs.mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const archivePath = path.join(dir, `backup-${stamp}.archive.gz`);
 
+  // `--uri` and the connection string must be one argv entry; a separate value breaks
+  // URIs with query params (e.g. `?appName=...`) on current mongodump builds.
   const result = spawnSync(
     'mongodump',
-    ['--uri', uri, '--gzip', '--archive', archivePath],
+    [`--uri=${uri}`, '--gzip', `--archive=${archivePath}`],
     { stdio: 'inherit' },
   );
 

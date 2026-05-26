@@ -21,6 +21,9 @@ REST API for a small family cookbook app: recipes, categories, and Google sign-i
 | `npm run server` | Same entry with **nodemon** + **tsx** (restart on file changes). |
 | `npm run build` | Compile TypeScript to **`dist/`** (`tsc`). |
 | `npm start` | Run the compiled app: **`node dist/index.js`** (run **`build`** first). |
+| `npm run mongo:dump` | Download a gzipped backup of the MongoDB database (manual; see [Database backup](#database-backup)). |
+| `npm run migrate:recipe-categories` | One-off migration script for recipe categories. |
+| `npm run import:recipes` | Import recipes from JSON (see `scripts/import-recipes-from-json.ts`). |
 
 ## Project layout
 
@@ -42,6 +45,43 @@ src/
 ## Environment
 
 Copy **`.env.example`** to **`.env`** and/or **`.env.local`** (local overrides the base file). Required variables are validated at startup; see the example file for descriptions.
+
+## Database backup
+
+Manual backups use **`mongodump`** via **`npm run mongo:dump`**. The script reads **`MONGO_URI`** from the same **`.env`** files as the API and writes a timestamped archive under **`mongo-backups/`** (that folder is gitignored).
+
+### Prerequisites
+
+1. **`MONGO_URI`** set in **`.env`** (or **`.env.local`**).
+2. **[MongoDB Database Tools](https://www.mongodb.com/try/download/database-tools)** installed so **`mongodump`** is on your **`PATH`**.
+
+   On macOS with Homebrew:
+
+   ```bash
+   brew install mongodb-database-tools
+   ```
+
+3. Your machine can reach the database (for Atlas: IP allowlist / network access).
+
+### Create a backup
+
+From the project root:
+
+```bash
+npm run mongo:dump
+```
+
+Example output file: **`mongo-backups/backup-2026-05-26T14-30-00.archive.gz`**.
+
+### Restore (optional)
+
+Use **`mongorestore`** with the same archive. **`--drop`** removes existing collections in the target database before restore—omit it if you only want to merge data.
+
+```bash
+mongorestore --gzip --archive=mongo-backups/backup-<timestamp>.archive.gz --drop
+```
+
+Replace **`<timestamp>`** with the stamp from your backup filename.
 
 ## API overview
 
