@@ -25,6 +25,8 @@ REST API for a small family cookbook app: recipes, categories, and Google sign-i
 | `npm run migrate:recipe-categories` | One-off migration script for recipe categories. |
 | `npm run import:recipes` | Import recipes from JSON (see `scripts/import-recipes-from-json.ts`). |
 
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for a deeper walkthrough of the request lifecycle, auth flow, and data models.
+
 ## Project layout
 
 ```
