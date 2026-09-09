@@ -4,11 +4,11 @@ declare global {
      * Authenticated user (Mongoose `users` document fields used by the API).
      */
     interface User {
-      id: string;
-      googleId: string;
+      createdAt: Date;
       displayName: string;
       email: string;
-      createdAt: Date;
+      googleId: string;
+      id: string;
     }
   }
 }

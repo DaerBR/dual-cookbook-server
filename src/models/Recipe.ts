@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
+import mongoose, { type Document, type Model, Schema, type Types } from 'mongoose';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 /** Stored after Cloudinary upload (needed for delete / replace). */
@@ -23,19 +23,19 @@ export interface RecipeStep {
 /**
  * Full recipe document stored in MongoDB.
  */
-export interface Recipe extends Document {
-  name: string;
+export interface IRecipe extends Document {
   /** At least one category id (see schema validation). */
   categories: Types.ObjectId[];
+  createdAt: Date;
+  createdBy: Types.ObjectId;
   description?: string;
   /** Ordered ingredients; writes replace the whole array (new subdocument ids each time). */
   ingredients?: RecipeIngredient[];
+  name: string;
+  recipeImage?: RecipeImage;
   sourceUrl?: string;
   /** Ordered steps; writes replace the whole array (new subdocument ids each time). */
   steps: RecipeStep[];
-  recipeImage?: RecipeImage;
-  createdBy: Types.ObjectId;
-  createdAt: Date;
   updatedAt: Date;
 }
 
@@ -43,10 +43,10 @@ export interface Recipe extends Document {
  * Short shape returned in paginated recipe lists (table view).
  */
 export interface RecipeTableRow {
-  id: string;
-  name: string;
   categories: Types.ObjectId[];
   createdAt: Date;
+  id: string;
+  name: string;
   updatedAt: Date;
 }
 
@@ -72,7 +72,7 @@ const recipeStepSchema = new Schema<Pick<RecipeStep, 'stepDescription'>>(
   { _id: true },
 );
 
-const recipeSchema = new Schema<Recipe>({
+const recipeSchema = new Schema<IRecipe>({
   name: { type: String, required: true, trim: true },
   categories: {
     type: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
@@ -116,8 +116,8 @@ recipeSchema.set('toObject', {
 
 recipeSchema.index({ categories: 1, createdAt: -1 });
 
-recipeSchema.pre('save', function setUpdatedAt(this: Recipe) {
+recipeSchema.pre('save', function setUpdatedAt(this: IRecipe) {
   this.updatedAt = new Date();
 });
 
-export const Recipe: Model<Recipe> = mongoose.models.Recipe ?? mongoose.model<Recipe>('Recipe', recipeSchema);
+export const Recipe: Model<IRecipe> = mongoose.models.Recipe ?? mongoose.model<IRecipe>('Recipe', recipeSchema);

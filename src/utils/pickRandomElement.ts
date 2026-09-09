@@ -6,5 +6,6 @@ export function pickRandomElement<T>(items: T[] | null | undefined): T | null {
     return null;
   }
   const index = Math.floor(Math.random() * items.length);
+
   return items[index] as T;
 }

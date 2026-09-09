@@ -27,23 +27,28 @@ passport.use(
     async (_accessToken, _refreshToken, profile, done) => {
       try {
         const existingByGoogle = await User.findOne({ googleId: profile.id });
+
         if (existingByGoogle) {
           return done(null, existingByGoogle);
         }
 
         const rawEmail = profile.emails?.[0]?.value;
         const email = rawEmail?.trim().toLowerCase();
+
         if (!email || !isEmailAllowed(email)) {
           return done(null, false);
         }
 
         const existingByEmail = await User.findOne({ email });
+
         if (existingByEmail) {
           existingByEmail.googleId = profile.id;
+
           if (profile.displayName) {
             existingByEmail.displayName = profile.displayName;
           }
           await existingByEmail.save();
+
           return done(null, existingByEmail);
         }
 
@@ -52,6 +57,7 @@ passport.use(
           displayName: profile.displayName ?? email,
           email,
         });
+
         return done(null, user);
       } catch (err) {
         return done(err as Error);

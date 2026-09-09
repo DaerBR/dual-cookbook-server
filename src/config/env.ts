@@ -30,15 +30,19 @@ export const getEnv = (): Env => {
     return cached;
   }
   const parsed = envSchema.safeParse(process.env);
+
   if (!parsed.success) {
-    const msg = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
-    throw new Error(`Invalid environment: ${msg}`);
+    const message = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+
+    throw new Error(`Invalid environment: ${message}`);
   }
   cached = parsed.data;
+
   return cached;
 };
 
 export const getPublicBaseUrl = (): string => {
   const e = getEnv();
+
   return (e.GOOGLE_CALLBACK_BASE ?? e.BASE_URL ?? `http://localhost:${e.PORT}`).replace(/\/$/, '');
 };

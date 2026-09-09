@@ -13,20 +13,25 @@ import { jsonError } from '../utils/jsonError';
 const resolvePostMessageTarget = (req: Request): string => {
   const allowlist = getCorsOriginAllowlist();
   const fromOAuth = typeof req.query.state === 'string' ? req.query.state.trim() : '';
+
   if (fromOAuth && allowlist.includes(fromOAuth)) {
     return fromOAuth;
   }
+
   if (allowlist.length > 0) {
     return allowlist[0]!;
   }
+
   return '*';
 };
 
 const getOriginFromReferer = (req: Request): string | undefined => {
   const referer = req.get('referer');
+
   if (!referer) {
     return undefined;
   }
+
   try {
     return new URL(referer).origin;
   } catch {
@@ -42,6 +47,7 @@ const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
   /** Without OAuth `state`, callback falls back to the *first* CORS origin — wrong for hosted SPA if localhost is listed first. Prefer Referer when it matches the allowlist. */
   if (!returnOrigin && allowlist.length > 0) {
     const fromReferer = getOriginFromReferer(req);
+
     if (fromReferer && allowlist.includes(fromReferer)) {
       returnOrigin = fromReferer;
     }
@@ -50,10 +56,13 @@ const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
   if (returnOrigin) {
     if (allowlist.length === 0) {
       jsonError(res, 400, 'return_origin requires CORS_ORIGIN to be set');
+
       return;
     }
+
     if (!allowlist.includes(returnOrigin)) {
       jsonError(res, 400, 'Invalid return_origin');
+
       return;
     }
   }
@@ -61,6 +70,7 @@ const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
   const authOptions: { scope: string[]; state?: string } = {
     scope: ['profile', 'email'],
   };
+
   if (returnOrigin) {
     authOptions.state = returnOrigin;
   }
@@ -72,38 +82,40 @@ export const registerAuthRoutes = (app: Express): void => {
   app.get('/auth/google', startGoogleAuth);
 
   app.get(
-      '/auth/google/callback',
-      passport.authenticate('google', {
-        failureRedirect: '/auth/google/failure',
-      }),
-      (req: Request, res: Response) => {
-        const user = req.user;
-        if (!user) {
-          res.redirect('/auth/google/failure');
-          return;
-        }
+    '/auth/google/callback',
+    passport.authenticate('google', {
+      failureRedirect: '/auth/google/failure',
+    }),
+    (req: Request, res: Response) => {
+      const user = req.user;
 
-        const payload = {
-          id: user.id,
-          displayName: user.displayName,
-          email: user.email,
-          createdAt: user.createdAt,
-        };
-        const targetOrigin = resolvePostMessageTarget(req);
-        const payloadJson = JSON.stringify(payload);
+      if (!user) {
+        res.redirect('/auth/google/failure');
 
-        res.type('html').send(`<script>
+        return;
+      }
+
+      const payload = {
+        id: user.id,
+        displayName: user.displayName,
+        email: user.email,
+        createdAt: user.createdAt,
+      };
+      const targetOrigin = resolvePostMessageTarget(req);
+      const payloadJson = JSON.stringify(payload);
+
+      res.type('html').send(`<script>
         (function () {
-          var payload = ${payloadJson};
-          var target = ${JSON.stringify(targetOrigin)};
+          const payload = ${payloadJson};
+          const target = ${JSON.stringify(targetOrigin)};
           if (window.opener && !window.opener.closed) {
             window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', payload: payload }, target);
           }
           window.close();
         })();
+        
         </script>`);
-      },
-
+    },
   );
 
   app.get('/auth/google/failure', (_req: Request, res: Response) => {
@@ -112,8 +124,10 @@ export const registerAuthRoutes = (app: Express): void => {
 
   app.get('/api/current_user', (req: Request, res: Response) => {
     res.set('Cache-Control', 'private, no-store');
+
     if (!req.user) {
       res.json(null);
+
       return;
     }
     res.json({

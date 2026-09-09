@@ -9,9 +9,9 @@ declare module 'cloudinary' {
       options?:
         | boolean
         | {
-            cloud_name?: string;
             api_key?: string;
             api_secret?: string;
+            cloud_name?: string;
             secure?: boolean;
           },
     ): unknown;
@@ -22,10 +22,7 @@ declare module 'cloudinary' {
         options?: Record<string, unknown>,
       ): Promise<{ public_id: string; secure_url: string }>;
 
-      function destroy(
-        publicId: string,
-        options?: Record<string, unknown>,
-      ): Promise<unknown>;
+      function destroy(publicId: string, options?: Record<string, unknown>): Promise<unknown>;
     }
   }
 }

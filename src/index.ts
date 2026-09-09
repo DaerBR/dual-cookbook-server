@@ -1,5 +1,5 @@
-import './config/loadEnv';
 import mongoose from 'mongoose';
+import './config/loadEnv';
 import { getEnv } from './config/env';
 import { createApp } from './app';
 

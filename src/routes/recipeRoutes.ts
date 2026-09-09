@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import {
   createRecipe,
-  updateRecipe,
   deleteRecipe,
   getRecipeById,
   listRecipesTable,
+  updateRecipe,
 } from '../controllers/recipeController';
 import { asyncHandler } from '../utils/asyncHandler';
 

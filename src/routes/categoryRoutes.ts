@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import {
   createCategory,
-  updateCategory,
-  listCategoriesPaginated,
-  listAllCategories,
   deleteCategory,
+  listAllCategories,
+  listCategoriesPaginated,
+  updateCategory,
 } from '../controllers/categoryController';
 import { asyncHandler } from '../utils/asyncHandler';
 
