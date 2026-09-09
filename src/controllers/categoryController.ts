@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { Category } from '../models/Category';
 import { Recipe } from '../models/Recipe';
-import { parsePagination, buildPaginationMeta } from '../utils/pagination';
+import { buildPaginationMeta, parsePagination } from '../utils/pagination';
 import { isValidObjectId } from '../utils/mongo';
 import { destroyImageByPublicId, uploadCategoryImage } from '../services/cloudinaryRecipeImage';
 import { escapeRegex, isDuplicateKeyError, parseCategoryImageUpload } from './utils';
@@ -11,30 +11,39 @@ import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 export const createCategory = async (req: Request, res: Response): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   const name = body.name;
+
   if (typeof name !== 'string' || !name.trim()) {
     jsonError(res, 400, 'name is required');
+
     return;
   }
 
   let doc;
+
   try {
     doc = await Category.create({ name: name.trim() });
   } catch (err: unknown) {
     if (isDuplicateKeyError(err)) {
       jsonError(res, 409, 'A category with this name already exists');
+
       return;
     }
+
     throw err;
   }
 
   const rawImage = body.categoryImage;
+
   if (rawImage !== undefined && rawImage !== null) {
     const imageParsed = parseCategoryImageUpload(rawImage);
+
     if (!imageParsed.ok) {
       await Category.findByIdAndDelete(doc._id);
       jsonError(res, 400, imageParsed.error);
+
       return;
     }
+
     try {
       const uploaded = await uploadCategoryImage(String(doc._id), imageParsed.data.dataUri);
       doc.categoryImage = { publicId: uploaded.publicId, secureUrl: uploaded.secureUrl };
@@ -43,6 +52,7 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
       console.error(err);
       await Category.findByIdAndDelete(doc._id);
       jsonError(res, 502, 'Image upload failed');
+
       return;
     }
   }
@@ -52,14 +62,18 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
 
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
+
   if (!isValidObjectId(id)) {
     jsonError(res, 400, 'Invalid category id');
+
     return;
   }
 
   const existing = await Category.findById(id);
+
   if (!existing) {
     jsonError(res, 404, 'Category not found');
+
     return;
   }
 
@@ -72,6 +86,7 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
   if (body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim()) {
       jsonError(res, 400, 'name must be a non-empty string');
+
       return;
     }
     $set.name = body.name.trim();
@@ -86,10 +101,13 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
     } else {
       previousImagePublicId = existing.categoryImage?.publicId;
       const imageParsed = parseCategoryImageUpload(body.categoryImage);
+
       if (!imageParsed.ok) {
         jsonError(res, 400, imageParsed.error);
+
         return;
       }
+
       try {
         const uploaded = await uploadCategoryImage(id, imageParsed.data.dataUri);
         orphanNewImagePublicId = uploaded.publicId;
@@ -97,32 +115,40 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
       } catch (err) {
         console.error(err);
         jsonError(res, 502, 'Image upload failed');
+
         return;
       }
     }
   }
 
   const mongoUpdate: Record<string, unknown> = {};
+
   if (Object.keys($set).length > 0) {
     mongoUpdate.$set = $set;
   }
+
   if (Object.keys($unset).length > 0) {
     mongoUpdate.$unset = $unset;
   }
+
   if (Object.keys(mongoUpdate).length === 0) {
     jsonError(res, 400, 'No valid fields to update');
+
     return;
   }
 
   try {
     const doc = await Category.findByIdAndUpdate(id, mongoUpdate, { new: true, runValidators: true });
+
     if (!doc) {
       if (orphanNewImagePublicId) {
         void destroyImageByPublicId(orphanNewImagePublicId);
       }
       jsonError(res, 404, 'Category not found');
+
       return;
     }
+
     if (previousImagePublicId) {
       void destroyImageByPublicId(previousImagePublicId);
     }
@@ -131,10 +157,13 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
     if (orphanNewImagePublicId) {
       void destroyImageByPublicId(orphanNewImagePublicId);
     }
+
     if (isDuplicateKeyError(err)) {
       jsonError(res, 409, 'A category with this name already exists');
+
       return;
     }
+
     throw err;
   }
 };
@@ -165,27 +194,34 @@ export const listAllCategories = async (_req: Request, res: Response): Promise<v
 
 export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
+
   if (!isValidObjectId(id)) {
     jsonError(res, 400, 'Invalid category id');
+
     return;
   }
 
   const inUse = await Recipe.countDocuments({ categories: id });
+
   if (inUse > 0) {
     jsonError(res, 409, 'This category is used by one or more recipes and cannot be deleted', {
       recipeCount: inUse,
     });
+
     return;
   }
 
   const existing = await Category.findById(id).lean();
+
   if (!existing) {
     jsonError(res, 404, 'Category not found');
+
     return;
   }
 
   await Category.findByIdAndDelete(id);
   const imagePublicId = existing.categoryImage?.publicId;
+
   if (imagePublicId) {
     void destroyImageByPublicId(imagePublicId);
   }

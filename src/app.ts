@@ -67,24 +67,32 @@ export const createApp = (): express.Application => {
       typeof (err as { status: unknown }).status === 'number'
         ? (err as { status: number }).status
         : undefined;
+
     if (status === 401) {
       const message = err instanceof Error ? err.message : 'Unauthorized access';
       jsonError(res, 401, message);
+
       return;
     }
+
     if (status === 403) {
       const message = err instanceof Error ? err.message : 'You must be logged in in order to access this resource';
       jsonError(res, 403, message);
+
       return;
     }
+
     if (status === 404) {
       const message = err instanceof Error ? err.message : 'Resource not found';
       jsonError(res, 404, message);
+
       return;
     }
+
     if (status === 413) {
       const message = err instanceof Error ? err.message : 'Request body too large';
       jsonError(res, 413, message);
+
       return;
     }
     console.error(err);

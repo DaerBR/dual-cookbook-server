@@ -7,9 +7,11 @@ const DEFAULT_ALLOWED = ['13daer@gmail.com', 'i.s.gaponova@gmail.com'] as const;
  */
 export const getAllowedEmails = (): string[] => {
   const raw = getEnv().ALLOWED_EMAILS;
+
   if (!raw?.trim()) {
     return [...DEFAULT_ALLOWED];
   }
+
   return raw
     .split(',')
     .map((s) => s.trim().toLowerCase())
@@ -21,5 +23,6 @@ export const isEmailAllowed = (email: string | undefined): boolean => {
     return false;
   }
   const normalized = email.trim().toLowerCase();
+
   return getAllowedEmails().includes(normalized);
 };

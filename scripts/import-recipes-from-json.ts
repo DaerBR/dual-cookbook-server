@@ -5,17 +5,14 @@
  * Requires MONGO_URI in .env (same as the API).
  */
 import path from 'path';
-import { readFileSync } from 'fs';
-import '../src/config/loadEnv';
 import mongoose from 'mongoose';
+import { readFileSync } from 'fs';
+
+import '../src/config/loadEnv';
 import { Recipe } from '../src/models/Recipe';
 import { Category } from '../src/models/Category';
 import { User } from '../src/models/User';
-import {
-  parseRecipeCategories,
-  parseRecipeIngredients,
-  parseRecipeSteps,
-} from '../src/controllers/utils';
+import { parseRecipeCategories, parseRecipeIngredients, parseRecipeSteps } from '../src/controllers/utils';
 
 const TARGET_USER_ID = '69c3ffc4448a9114c2640cae';
 const JSON_PATH = path.join(__dirname, 'importedRecipes.json');
@@ -30,67 +27,76 @@ function sanitizeIngredientsForImport(raw: unknown): unknown {
   if (raw === undefined || raw === null) {
     return raw;
   }
+
   if (!Array.isArray(raw)) {
     return raw;
   }
-  const filtered: { text: string }[] = [];
+  const filtered: Array<{ text: string }> = [];
+
   for (const el of raw) {
     if (el === null || typeof el !== 'object' || Array.isArray(el)) {
       continue;
     }
     const textRaw = (el as Record<string, unknown>).text;
+
     if (typeof textRaw !== 'string' || !textRaw.trim()) {
       continue;
     }
     filtered.push({ text: textRaw.trim() });
   }
+
   return filtered;
 }
 
 function buildCreatePayload(body: RecipePayload, createdBy: mongoose.Types.ObjectId): Record<string, unknown> {
   const name = body.name;
+
   if (typeof name !== 'string' || !name.trim()) {
     throw new Error('name is required');
   }
 
   const categoriesResult = parseRecipeCategories(body.categories);
+
   if (!categoriesResult.ok) {
     throw new Error(categoriesResult.error);
   }
 
   const ingredientsResult = parseRecipeIngredients(sanitizeIngredientsForImport(body.ingredients));
+
   if (!ingredientsResult.ok) {
     throw new Error(ingredientsResult.error);
   }
 
   const stepsResult = parseRecipeSteps(body.steps);
+
   if (!stepsResult.ok) {
     throw new Error(stepsResult.error);
   }
 
   const sourceUrlRaw = body.sourceUrl;
-  const sourceUrl =
-    typeof sourceUrlRaw === 'string' && sourceUrlRaw.trim() ? sourceUrlRaw.trim() : undefined;
+  const sourceUrl = typeof sourceUrlRaw === 'string' && sourceUrlRaw.trim() ? sourceUrlRaw.trim() : undefined;
 
   return {
     name: name.trim(),
     categories: categoriesResult.value,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
-    ...(ingredientsResult.value !== undefined ? { ingredients: ingredientsResult.value } : {}),
+    ...(ingredientsResult.value === undefined ? {} : { ingredients: ingredientsResult.value }),
     steps: stepsResult.value,
     createdBy,
-    ...(sourceUrl !== undefined ? { sourceUrl } : {}),
+    ...(sourceUrl === undefined ? {} : { sourceUrl }),
   };
 }
 
 async function main(): Promise<void> {
   const uri = process.env.MONGO_URI;
-  if (!uri || !uri.trim()) {
+
+  if (!uri?.trim()) {
     console.error('Set MONGO_URI in .env (same as the API uses).');
     process.exit(1);
   }
 
   let raw: unknown;
+
   try {
     raw = JSON.parse(readFileSync(JSON_PATH, 'utf8'));
   } catch (err: unknown) {
@@ -108,31 +114,36 @@ async function main(): Promise<void> {
   await mongoose.connect(uri);
 
   const owner = await User.findById(TARGET_USER_ID).select('_id').lean();
+
   if (!owner) {
     console.error(`User ${TARGET_USER_ID} was not found.`);
     await mongoose.disconnect();
     process.exit(1);
   }
 
-  const docs: Record<string, unknown>[] = [];
-  for (let i = 0; i < raw.length; i++) {
+  const docs: Array<Record<string, unknown>> = [];
+
+  for (let i = 0; i < raw.length; i += 1) {
     const item = raw[i];
+
     if (item === null || typeof item !== 'object' || Array.isArray(item)) {
       console.error(`Row ${i}: expected an object`);
       await mongoose.disconnect();
       process.exit(1);
     }
+
     try {
       docs.push(buildCreatePayload(item as RecipePayload, createdBy));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`Row ${i} (${(item as RecipePayload).name ?? '?'}): ${msg}`);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Row ${i} (${(item as RecipePayload).name ?? '?'}): ${message}`);
       await mongoose.disconnect();
       process.exit(1);
     }
   }
 
   const categoryIds = new Set<string>();
+
   for (const d of docs) {
     const cats = d.categories as string[];
     cats.forEach((c) => categoryIds.add(c));
@@ -140,6 +151,7 @@ async function main(): Promise<void> {
   const foundCount = await Category.countDocuments({
     _id: { $in: [...categoryIds].map((id) => new mongoose.Types.ObjectId(id)) },
   });
+
   if (foundCount !== categoryIds.size) {
     console.error('One or more categories from the file do not exist in the database.');
     await mongoose.disconnect();

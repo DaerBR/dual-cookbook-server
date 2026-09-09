@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Document, type Model, type Types } from 'mongoose';
+import mongoose, { type Document, type Model, Schema, type Types } from 'mongoose';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 /** Stored after Cloudinary upload (needed for delete / replace). */
@@ -7,22 +7,21 @@ export interface CategoryImage {
   secureUrl: string;
 }
 
-
-export interface Category extends Document {
-  name: string;
+export interface ICategory extends Document {
+  categoryImage?: CategoryImage;
   createdAt: Date;
-  categoryImage?: CategoryImage,
+  name: string;
 }
 
 const categoryImageSchema = new Schema<CategoryImage>(
-    {
-      publicId: { type: String, required: true },
-      secureUrl: { type: String, required: true },
-    },
-    { _id: false },
+  {
+    publicId: { type: String, required: true },
+    secureUrl: { type: String, required: true },
+  },
+  { _id: false },
 );
 
-const categorySchema = new Schema<Category>({
+const categorySchema = new Schema<ICategory>({
   name: {
     type: String,
     required: true,
@@ -45,5 +44,5 @@ categorySchema.set('toObject', {
 
 export type CategoryId = Types.ObjectId;
 
-export const Category: Model<Category> =
-  mongoose.models.Category ?? mongoose.model<Category>('Category', categorySchema);
+export const Category: Model<ICategory> =
+  mongoose.models.Category ?? mongoose.model<ICategory>('Category', categorySchema);

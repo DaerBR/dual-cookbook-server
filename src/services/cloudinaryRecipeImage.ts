@@ -28,6 +28,7 @@ export const uploadRecipeImage = async (
     overwrite: false,
     unique_filename: true,
   });
+
   return {
     publicId: result.public_id,
     secureUrl: result.secure_url,
@@ -45,6 +46,7 @@ export const uploadCategoryImage = async (
     overwrite: false,
     unique_filename: true,
   });
+
   return {
     publicId: result.public_id,
     secureUrl: result.secure_url,
@@ -53,6 +55,7 @@ export const uploadCategoryImage = async (
 
 export const destroyImageByPublicId = async (publicId: string): Promise<void> => {
   configureCloudinary();
+
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
   } catch (err) {

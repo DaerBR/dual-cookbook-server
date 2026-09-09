@@ -1,12 +1,12 @@
-import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import mongoose, { type Document, type Model, Schema } from 'mongoose';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 
 export interface IUser extends Document {
-  id: string;
-  googleId: string;
+  createdAt: Date;
   displayName: string;
   email: string;
-  createdAt: Date;
+  googleId: string;
+  id: string;
 }
 
 const userSchema = new Schema<IUser>({
@@ -37,5 +37,4 @@ userSchema.set('toObject', {
   transform: (_doc, ret) => renameMongoIdsForClient(ret),
 });
 
-export const User: Model<IUser> =
-  mongoose.models.users ?? mongoose.model<IUser>('users', userSchema);
+export const User: Model<IUser> = mongoose.models.users ?? mongoose.model<IUser>('users', userSchema);

@@ -10,6 +10,7 @@ export const jsonError = (
   extras?: Record<string, unknown>,
 ): void => {
   const payload: Record<string, unknown> = { message };
+
   if (extras) {
     for (const [key, value] of Object.entries(extras)) {
       payload[key] = value;

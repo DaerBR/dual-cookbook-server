@@ -1,5 +1,3 @@
 import mongoose from 'mongoose';
 
-export const isValidObjectId = (id: string): boolean => {
-  return mongoose.isValidObjectId(id);
-};
+export const isValidObjectId = (id: string): boolean => mongoose.isValidObjectId(id);

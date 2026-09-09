@@ -2,27 +2,29 @@
  * Runs `mongodump` using MONGO_URI from .env (same as the app).
  * Requires MongoDB Database Tools: https://www.mongodb.com/try/download/database-tools
  */
-import '../src/config/loadEnv';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import '../src/config/loadEnv';
 
 const normalizeMongoUri = (raw: string): string => {
   const trimmed = raw.trim();
   const unquoted =
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))
       ? trimmed.slice(1, -1)
       : trimmed;
+
   if (!/^mongodb(\+srv)?:\/\//.test(unquoted)) {
     console.error('MONGO_URI must start with mongodb:// or mongodb+srv://');
     process.exit(1);
   }
+
   return unquoted;
 };
 
 const main = (): void => {
   const rawUri = process.env.MONGO_URI;
+
   if (!rawUri?.trim()) {
     console.error('Set MONGO_URI in .env (same as the API).');
     process.exit(1);
@@ -36,11 +38,7 @@ const main = (): void => {
 
   // `--uri` and the connection string must be one argv entry; a separate value breaks
   // URIs with query params (e.g. `?appName=...`) on current mongodump builds.
-  const result = spawnSync(
-    'mongodump',
-    [`--uri=${uri}`, '--gzip', `--archive=${archivePath}`],
-    { stdio: 'inherit' },
-  );
+  const result = spawnSync('mongodump', [`--uri=${uri}`, '--gzip', `--archive=${archivePath}`], { stdio: 'inherit' });
 
   if (result.error) {
     if ((result.error as NodeJS.ErrnoException).code === 'ENOENT') {
