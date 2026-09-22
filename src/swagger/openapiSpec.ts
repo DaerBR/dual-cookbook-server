@@ -662,7 +662,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
           type: 'object',
           properties: {
             id: { type: 'string', description: 'MongoDB document id (hex string)' },
-            name: { type: 'string' },
+            recipeTitle: { type: 'string' },
             categories: {
               type: 'array',
               minItems: 1,
@@ -698,7 +698,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
           type: 'object',
           properties: {
             id: { type: 'string' },
-            name: { type: 'string' },
+            recipeTitle: { type: 'string' },
             description: { type: 'string' },
             recipeImage: {
               description: 'Absent or null when no image is stored.',
@@ -726,9 +726,9 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         },
         RecipeCreate: {
           type: 'object',
-          required: ['name', 'categories', 'ingredients', 'steps'],
+          required: ['recipeTitle', 'categories', 'ingredients', 'steps'],
           properties: {
-            name: { type: 'string' },
+            recipeTitle: { type: 'string' },
             categories: {
               type: 'array',
               minItems: 1,
@@ -757,7 +757,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
           description:
             'Partial update; include only fields to change. Send `recipeImage: null` to leave the existing image unchanged. Send `recipeImage: false` to remove the stored image (Cloudinary asset is deleted).',
           properties: {
-            name: { type: 'string' },
+            recipeTitle: { type: 'string' },
             categories: {
               type: 'array',
               minItems: 1,

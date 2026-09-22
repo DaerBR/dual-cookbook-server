@@ -22,10 +22,10 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
   }
 
   const body = req.body as Record<string, unknown>;
-  const name = body.name;
+  const recipeTitle = body.recipeTitle;
 
-  if (typeof name !== 'string' || !name.trim()) {
-    jsonError(res, 400, 'name is required');
+  if (typeof recipeTitle !== 'string' || !recipeTitle.trim()) {
+    jsonError(res, 400, 'recipeTitle is required');
 
     return;
   }
@@ -65,7 +65,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
   const sourceUrl = typeof sourceUrlRaw === 'string' && sourceUrlRaw.trim() ? sourceUrlRaw.trim() : undefined;
 
   const doc = await Recipe.create({
-    name: name.trim(),
+    recipeTitle: recipeTitle.trim(),
     categories: categoryIds,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
     ...(ingredientsResult.value === undefined ? {} : { ingredients: ingredientsResult.value }),
@@ -125,13 +125,13 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
   let previousImagePublicId: string | undefined;
   let orphanNewImagePublicId: string | undefined;
 
-  if (body.name !== undefined) {
-    if (typeof body.name !== 'string' || !body.name.trim()) {
-      jsonError(res, 400, 'name must be a non-empty string');
+  if (body.recipeTitle !== undefined) {
+    if (typeof body.recipeTitle !== 'string' || !body.recipeTitle.trim()) {
+      jsonError(res, 400, 'recipeTitle must be a non-empty string');
 
       return;
     }
-    $set.name = body.name.trim();
+    $set.recipeTitle = body.recipeTitle.trim();
   }
 
   if (body.categories !== undefined) {
@@ -341,7 +341,7 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   const filter: Record<string, unknown> = {};
 
   if (search) {
-    filter.name = { $regex: escapeRegex(search), $options: 'i' };
+    filter.recipeTitle = { $regex: escapeRegex(search), $options: 'i' };
   }
 
   if (categoryIdsFromQuery.length > 0) {
@@ -367,7 +367,7 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
   const [total, rows] = await Promise.all([
     Recipe.countDocuments(filter),
     Recipe.find(filter)
-      .select('_id name categories description recipeImage createdAt updatedAt')
+      .select('_id recipeTitle categories description recipeImage createdAt updatedAt')
       .populate('categories', 'name')
       .sort({ updatedAt: updatedAtSort })
       .skip(skip)

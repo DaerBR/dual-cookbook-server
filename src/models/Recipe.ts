@@ -31,8 +31,8 @@ export interface IRecipe extends Document {
   description?: string;
   /** Ordered ingredients; writes replace the whole array (new subdocument ids each time). */
   ingredients?: RecipeIngredient[];
-  name: string;
   recipeImage?: RecipeImage;
+  recipeTitle: string;
   sourceUrl?: string;
   /** Ordered steps; writes replace the whole array (new subdocument ids each time). */
   steps: RecipeStep[];
@@ -46,7 +46,7 @@ export interface RecipeTableRow {
   categories: Types.ObjectId[];
   createdAt: Date;
   id: string;
-  name: string;
+  recipeTitle: string;
   updatedAt: Date;
 }
 
@@ -73,7 +73,7 @@ const recipeStepSchema = new Schema<Pick<RecipeStep, 'stepDescription'>>(
 );
 
 const recipeSchema = new Schema<IRecipe>({
-  name: { type: String, required: true, trim: true },
+  recipeTitle: { type: String, required: true, trim: true },
   categories: {
     type: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     required: true,

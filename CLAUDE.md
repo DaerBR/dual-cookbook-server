@@ -12,6 +12,7 @@ npm start            # Run compiled dist/index.js (requires build first)
 
 npm run mongo:dump          # Gzipped mongodump → mongo-backups/
 npm run migrate:recipe-categories  # One-off migration script
+npm run migrate:recipe-title       # One-off migration script: recipes.name → recipes.recipeTitle
 npm run import:recipes      # Import recipes from JSON file
 ```
 

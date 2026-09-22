@@ -49,10 +49,10 @@ function sanitizeIngredientsForImport(raw: unknown): unknown {
 }
 
 function buildCreatePayload(body: RecipePayload, createdBy: mongoose.Types.ObjectId): Record<string, unknown> {
-  const name = body.name;
+  const recipeTitle = body.recipeTitle;
 
-  if (typeof name !== 'string' || !name.trim()) {
-    throw new Error('name is required');
+  if (typeof recipeTitle !== 'string' || !recipeTitle.trim()) {
+    throw new Error('recipeTitle is required');
   }
 
   const categoriesResult = parseRecipeCategories(body.categories);
@@ -77,7 +77,7 @@ function buildCreatePayload(body: RecipePayload, createdBy: mongoose.Types.Objec
   const sourceUrl = typeof sourceUrlRaw === 'string' && sourceUrlRaw.trim() ? sourceUrlRaw.trim() : undefined;
 
   return {
-    name: name.trim(),
+    recipeTitle: recipeTitle.trim(),
     categories: categoriesResult.value,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
     ...(ingredientsResult.value === undefined ? {} : { ingredients: ingredientsResult.value }),
@@ -136,7 +136,7 @@ async function main(): Promise<void> {
       docs.push(buildCreatePayload(item as RecipePayload, createdBy));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`Row ${i} (${(item as RecipePayload).name ?? '?'}): ${message}`);
+      console.error(`Row ${i} (${(item as RecipePayload).recipeTitle ?? '?'}): ${message}`);
       await mongoose.disconnect();
       process.exit(1);
     }
