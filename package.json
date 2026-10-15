@@ -29,6 +29,7 @@
     "npm": "9.6.6"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "cloudinary": "^2.9.0",
     "cookie-session": "^2.1.1",
     "cors": "^2.8.6",

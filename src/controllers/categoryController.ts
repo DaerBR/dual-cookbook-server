@@ -13,7 +13,7 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
   const name = body.name;
 
   if (typeof name !== 'string' || !name.trim()) {
-    jsonError(res, 400, 'name is required');
+    jsonError(res, 400, 'Category name is required');
 
     return;
   }
@@ -172,9 +172,7 @@ export const listCategoriesPaginated = async (req: Request, res: Response): Prom
   const { page, limit, skip } = parsePagination(req.query);
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
-  const filter = search
-    ? { name: { $regex: escapeRegex(search), $options: 'i' } }
-    : {};
+  const filter = search ? { name: { $regex: escapeRegex(search), $options: 'i' } } : {};
 
   const [total, data] = await Promise.all([
     Category.countDocuments(filter),

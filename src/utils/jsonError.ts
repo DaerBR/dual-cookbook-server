@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 
 /**
- * Standard API error JSON: `{ error: { message } }`, optional top-level fields (e.g. `recipeCount`).
+ * Standard API error JSON: `{ message }`, plus optional top-level fields (e.g. `recipeCount`).
  */
 export const jsonError = (
   res: Response,

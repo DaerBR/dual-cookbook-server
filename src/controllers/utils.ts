@@ -33,11 +33,11 @@ const parseImageUpload = (raw: unknown, field: string): ParseRecipeImageUploadRe
   const base64Content = obj.base64Content;
 
   if (typeof nameWithExtension !== 'string' || !nameWithExtension.trim()) {
-    return { ok: false, error: `${field}.nameWithExtension is required` };
+    return { ok: false, error: `Image ${field}.nameWithExtension is required` };
   }
 
   if (typeof base64Content !== 'string' || !base64Content.trim()) {
-    return { ok: false, error: `${field}.base64Content is required` };
+    return { ok: false, error: `Image ${field}.base64Content is required` };
   }
   const name = nameWithExtension.trim();
   const lastDot = name.lastIndexOf('.');
@@ -168,11 +168,11 @@ export const parseRecipeCategories = (raw: unknown): ParseRecipeCategoriesResult
   const field = 'categories';
 
   if (raw === undefined || raw === null) {
-    return { ok: false, error: `${field} is required` };
+    return { ok: false, error: `Field ${field} is required` };
   }
 
   if (!Array.isArray(raw)) {
-    return { ok: false, error: `${field} must be an array` };
+    return { ok: false, error: `Field ${field} must be an array` };
   }
 
   if (raw.length < 1) {
@@ -210,11 +210,11 @@ export const parseRecipeSteps = (raw: unknown): ParseRecipeStepsResult => {
   const field = 'steps';
 
   if (raw === undefined || raw === null) {
-    return { ok: false, error: `${field} is required` };
+    return { ok: false, error: `Field ${field} is required` };
   }
 
   if (!Array.isArray(raw)) {
-    return { ok: false, error: `${field} must be an array` };
+    return { ok: false, error: `Field ${field} must be an array` };
   }
 
   if (raw.length < 1) {

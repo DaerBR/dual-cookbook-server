@@ -13,6 +13,7 @@ import {
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
+import { getInstagramShortcode, parseInstagramPost } from '../services/recipeImport/instagramParser';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
@@ -25,7 +26,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
   const recipeTitle = body.recipeTitle;
 
   if (typeof recipeTitle !== 'string' || !recipeTitle.trim()) {
-    jsonError(res, 400, 'recipeTitle is required');
+    jsonError(res, 400, 'Recipe title is required');
 
     return;
   }
@@ -388,13 +389,13 @@ export const importRecipeDraft = async (req: Request, res: Response): Promise<vo
   const trimmedUrl = typeof url === 'string' ? url.trim() : '';
 
   if (!trimmedUrl) {
-    jsonError(res, 400, 'url is required');
+    jsonError(res, 400, 'URL is required');
 
     return;
   }
 
   if (!URL.canParse(trimmedUrl)) {
-    jsonError(res, 400, 'provided URL is not valid');
+    jsonError(res, 400, 'Provided URL is not valid');
 
     return;
   }
@@ -402,12 +403,19 @@ export const importRecipeDraft = async (req: Request, res: Response): Promise<vo
   const parsedUrl = new URL(trimmedUrl);
 
   if (parsedUrl.protocol !== 'https:') {
-    jsonError(res, 400, 'only https URLs are supported');
+    jsonError(res, 400, 'Only https URLs are supported');
 
     return;
   }
 
-  // TODO (step 2+): fetch + parse the page
+  /* Temporary - supports IG only */
+  if (!getInstagramShortcode(parsedUrl)) {
+    jsonError(res, 400, 'Only Instagram URLs are supported for now');
 
-  res.json({ sourceUrl: parsedUrl.href });
+    return;
+  }
+
+  const draft = await parseInstagramPost(parsedUrl);
+
+  res.json(draft);
 };
