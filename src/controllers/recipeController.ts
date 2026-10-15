@@ -380,3 +380,34 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
     pagination: buildPaginationMeta(page, limit, total),
   });
 };
+
+export const importRecipeDraft = async (req: Request, res: Response): Promise<void> => {
+  const body = req.body as Record<string, unknown>;
+  const { url } = body;
+
+  const trimmedUrl = typeof url === 'string' ? url.trim() : '';
+
+  if (!trimmedUrl) {
+    jsonError(res, 400, 'url is required');
+
+    return;
+  }
+
+  if (!URL.canParse(trimmedUrl)) {
+    jsonError(res, 400, 'provided URL is not valid');
+
+    return;
+  }
+
+  const parsedUrl = new URL(trimmedUrl);
+
+  if (parsedUrl.protocol !== 'https:') {
+    jsonError(res, 400, 'only https URLs are supported');
+
+    return;
+  }
+
+  // TODO (step 2+): fetch + parse the page
+
+  res.json({ sourceUrl: parsedUrl.href });
+};
