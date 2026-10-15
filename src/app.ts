@@ -53,6 +53,31 @@ export const createApp = (): express.Application => {
     res.json({ status: 'ok' });
   });
 
+  // Temp
+  app.get('/debug/ig-meta/:shortcode', async (req, res) => {
+    const { shortcode } = req.params;
+
+    if (!/^[\w-]{5,20}$/.test(shortcode)) {
+      jsonError(res, 400, 'Invalid shortcode');
+
+      return;
+    }
+
+    const response = await fetch(`https://www.instagram.com/p/${shortcode}/`, {
+      headers: { 'User-Agent': 'facebookexternalhit/1.1', 'Accept-Language': 'en-US' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const html = await response.text();
+    const metaTags = html.match(/<meta[^>]+(?:og:|name="description")[^>]*>/g) ?? [];
+
+    res.json({
+      status: response.status,
+      finalUrl: response.url,
+      htmlLength: html.length,
+      metaTags,
+    });
+  });
+
   registerAuthRoutes(app);
   setupSwagger(app);
 
