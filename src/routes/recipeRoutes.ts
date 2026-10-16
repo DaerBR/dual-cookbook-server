@@ -3,6 +3,7 @@ import {
   createRecipe,
   deleteRecipe,
   getRecipeById,
+  importRecipeDraft,
   listRecipesTable,
   updateRecipe,
 } from '../controllers/recipeController';
@@ -12,6 +13,7 @@ export const recipeRouter = Router();
 
 recipeRouter.get('/', asyncHandler(listRecipesTable));
 recipeRouter.post('/', asyncHandler(createRecipe));
+recipeRouter.post('/import', asyncHandler(importRecipeDraft));
 recipeRouter.get('/:id', asyncHandler(getRecipeById));
 recipeRouter.put('/:id', asyncHandler(updateRecipe));
 recipeRouter.delete('/:id', asyncHandler(deleteRecipe));

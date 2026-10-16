@@ -15,6 +15,14 @@ import { categoryRouter } from './routes/categoryRoutes';
 import { setupSwagger } from './swagger/setupSwagger';
 import { jsonError } from './utils/jsonError';
 
+/** Fallback messages for errors that carry a status but no message (e.g. non-`Error` values). */
+const DEFAULT_ERROR_MESSAGES: Record<number, string> = {
+  401: 'Unauthorized access',
+  403: 'You must be logged in in order to access this resource',
+  404: 'Resource not found',
+  413: 'Request body too large',
+};
+
 export const createApp = (): express.Application => {
   const app = express();
   const env = getEnv();
@@ -53,38 +61,20 @@ export const createApp = (): express.Application => {
     res.json({ status: 'ok' });
   });
 
-  // Temp
-  app.get('/debug/ig-meta/:shortcode', async (req, res) => {
-    const { shortcode } = req.params;
-
-    if (!/^[\w-]{5,20}$/.test(shortcode)) {
-      jsonError(res, 400, 'Invalid shortcode');
-
-      return;
-    }
-
-    const response = await fetch(`https://www.instagram.com/p/${shortcode}/`, {
-      headers: { 'User-Agent': 'facebookexternalhit/1.1', 'Accept-Language': 'en-US' },
-      signal: AbortSignal.timeout(10_000),
-    });
-    const html = await response.text();
-    const metaTags = html.match(/<meta[^>]+(?:og:|name="description")[^>]*>/g) ?? [];
-
-    res.json({
-      status: response.status,
-      finalUrl: response.url,
-      htmlLength: html.length,
-      metaTags,
-    });
-  });
-
   registerAuthRoutes(app);
   setupSwagger(app);
 
   app.use('/api/recipes', requireLoginExceptSafeMethods, recipeRouter);
   app.use('/api/categories', requireLoginExceptSafeMethods, categoryRouter);
 
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    /** A response was already (partially) sent — let Express close the connection instead of sending a second one. */
+    if (res.headersSent) {
+      next(err);
+
+      return;
+    }
+
     const status =
       err !== null &&
       typeof err === 'object' &&
@@ -93,36 +83,18 @@ export const createApp = (): express.Application => {
         ? (err as { status: number }).status
         : undefined;
 
-    if (status === 401) {
-      const message = err instanceof Error ? err.message : 'Unauthorized access';
-      jsonError(res, 401, message);
+    /** Any 4xx/5xx carried by the error (`HttpError`, body-parser, passport…) is passed through; anything else is a 500. */
+    const httpStatus = status !== undefined && status >= 400 && status <= 599 ? status : 500;
 
-      return;
+    if (httpStatus >= 500) {
+      console.error(err);
     }
 
-    if (status === 403) {
-      const message = err instanceof Error ? err.message : 'You must be logged in in order to access this resource';
-      jsonError(res, 403, message);
-
-      return;
-    }
-
-    if (status === 404) {
-      const message = err instanceof Error ? err.message : 'Resource not found';
-      jsonError(res, 404, message);
-
-      return;
-    }
-
-    if (status === 413) {
-      const message = err instanceof Error ? err.message : 'Request body too large';
-      jsonError(res, 413, message);
-
-      return;
-    }
-    console.error(err);
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    jsonError(res, 500, message);
+    const message =
+      err instanceof Error && err.message
+        ? err.message
+        : (DEFAULT_ERROR_MESSAGES[httpStatus] ?? 'Internal server error');
+    jsonError(res, httpStatus, message);
   });
 
   return app;
