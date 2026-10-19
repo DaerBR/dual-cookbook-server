@@ -19,6 +19,11 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
   CLOUDINARY_BASE_URL: z.string().url().optional(),
+  /** Overrides the default "Not tested yet" category id (see `src/config/untestedCategory.ts`). */
+  UNTESTED_CATEGORY_ID: z
+    .string()
+    .regex(/^[0-9a-f]{24}$/i, 'UNTESTED_CATEGORY_ID must be a 24-char hex ObjectId')
+    .optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

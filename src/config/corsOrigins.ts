@@ -9,7 +9,7 @@ export const getCorsOriginAllowlist = (): string[] => {
   }
 
   return raw
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 };

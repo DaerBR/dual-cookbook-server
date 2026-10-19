@@ -14,6 +14,7 @@ import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinar
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 import { getInstagramShortcode, parseInstagramPost } from '../services/recipeImport/instagramParser';
+import { getUntestedCategoryId } from '../config/untestedCategory';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
@@ -345,16 +346,26 @@ export const listRecipesTable = async (req: Request, res: Response): Promise<voi
     filter.recipeTitle = { $regex: escapeRegex(search), $options: 'i' };
   }
 
-  if (categoryIdsFromQuery.length > 0) {
-    for (const cid of categoryIdsFromQuery) {
-      if (!isValidObjectId(cid)) {
-        jsonError(res, 400, 'categories query must be comma-separated valid ObjectIds');
+  for (const cid of categoryIdsFromQuery) {
+    if (!isValidObjectId(cid)) {
+      jsonError(res, 400, 'categories query must be comma-separated valid ObjectIds');
 
-        return;
-      }
+      return;
     }
-    filter.categories = { $in: categoryIdsFromQuery };
   }
+
+  const untestedCategoryId = getUntestedCategoryId();
+
+  // "Not tested yet" recipes are only listed when that category is explicitly requested.
+  // On an array field, `$ne` matches documents whose array does NOT contain the value.
+  const categoriesFilter: Record<string, unknown> = categoryIdsFromQuery.includes(untestedCategoryId)
+    ? {}
+    : { $ne: untestedCategoryId };
+
+  if (categoryIdsFromQuery.length > 0) {
+    categoriesFilter.$in = categoryIdsFromQuery;
+  }
+  filter.categories = categoriesFilter;
 
   if (recipeAuthorRaw) {
     if (!isValidObjectId(recipeAuthorRaw)) {

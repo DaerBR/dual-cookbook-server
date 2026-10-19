@@ -178,7 +178,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
             name: 'categories',
             in: 'query',
             description:
-              'Optional. Comma-separated category ObjectIds. Returns recipes that include at least one of the given categories.',
+              'Optional. Comma-separated category ObjectIds. Returns recipes that include at least one of the given categories. Recipes in the special "Not tested yet" category are excluded unless its id is included here.',
             schema: { type: 'string', example: '507f1f77bcf86cd799439011,507f191e810c19729de860ea' },
           },
           {
