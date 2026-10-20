@@ -1,5 +1,5 @@
 import { load } from 'cheerio';
-import { fetchHtml } from './fetchHtml';
+import { fetchHtml } from './fetchExternal';
 import type { ExternalRecipeDraft } from './types';
 import { HttpError } from '../../utils/httpError';
 

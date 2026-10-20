@@ -254,7 +254,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         tags: ['Recipes'],
         summary: 'Parse an external page into a recipe draft (not saved)',
         description:
-          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username).',
+          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username) and Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API).',
         security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
@@ -280,7 +280,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
           '401': { description: 'Not authenticated' },
           '422': {
             description:
-              'Page fetched but nothing to import (post not found, private, or has no caption). Deliberately not 404 — the client redirects to its Not Found page on 404.',
+              'Page fetched but nothing to import (post/article not found, private, or has no caption/text). Deliberately not 404 — the client redirects to its Not Found page on 404.',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorMessage' } } },
           },
           '502': {
@@ -697,17 +697,18 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         properties: {
           recipeTitle: {
             type: 'string',
-            description: 'First non-empty caption line (max 100 chars)',
+            description: 'Instagram: first non-empty caption line. Telegraph: article title. Max 100 chars.',
             example: '🍜🍥 Шою Рамен (Shoyu Ramen)',
           },
           steps: {
             type: 'array',
-            description: 'Plain strings (not `RecipeStepInput` objects). Instagram: one entry with the full caption.',
+            description:
+              'Plain strings (not `RecipeStepInput` objects). Instagram: one entry with the full caption. Telegraph: one entry with the full article text (one line per paragraph).',
             items: { type: 'string' },
           },
           ingredients: { type: 'array', items: { type: 'string' } },
           description: { type: 'string' },
-          imageUrl: { type: 'string', format: 'uri' },
+          imageUrl: { type: 'string', format: 'uri', description: 'Telegraph: the article cover image' },
           sourceUrl: {
             type: 'string',
             format: 'uri',

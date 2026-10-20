@@ -13,7 +13,7 @@ import {
 import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinaryRecipeImage';
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
-import { getInstagramShortcode, parseInstagramPost } from '../services/recipeImport/instagramParser';
+import { findRecipeParser, supportedSourceNames } from '../services/recipeImport/parsers';
 import { getUntestedCategoryId } from '../config/untestedCategory';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
@@ -419,14 +419,15 @@ export const importRecipeDraft = async (req: Request, res: Response): Promise<vo
     return;
   }
 
-  /* Temporary - supports IG only */
-  if (!getInstagramShortcode(parsedUrl)) {
-    jsonError(res, 400, 'Only Instagram URLs are supported for now');
+  const parser = findRecipeParser(parsedUrl);
+
+  if (!parser) {
+    jsonError(res, 400, `Unsupported site. Supported: ${supportedSourceNames.join(', ')}`);
 
     return;
   }
 
-  const draft = await parseInstagramPost(parsedUrl);
+  const draft = await parser.parse(parsedUrl);
 
   res.json(draft);
 };
