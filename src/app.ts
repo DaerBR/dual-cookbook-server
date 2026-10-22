@@ -10,6 +10,7 @@ import './models/Recipe';
 import './services/passport';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { requireLoginExceptSafeMethods } from './middlewares/requireLogin';
+import { cookieSessionPassportShim } from './middlewares/cookieSessionPassportShim';
 import { recipeRouter } from './routes/recipeRoutes';
 import { categoryRouter } from './routes/categoryRoutes';
 import { setupSwagger } from './swagger/setupSwagger';
@@ -54,6 +55,7 @@ export const createApp = (): express.Application => {
       sameSite: sessionCookieCrossSite ? 'none' : 'lax',
     }),
   );
+  app.use(cookieSessionPassportShim);
   app.use(passport.initialize());
   app.use(passport.session());
 
