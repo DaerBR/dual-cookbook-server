@@ -1,7 +1,6 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 import passport from 'passport';
 import { getCorsOriginAllowlist } from '../config/corsOrigins';
-import { logoutSync } from '../utils/passportLogout';
 import { jsonError } from '../utils/jsonError';
 
 /**
@@ -137,8 +136,14 @@ export const registerAuthRoutes = (app: Express): void => {
     });
   });
 
-  app.get('/api/logout', (req: Request, res: Response) => {
-    logoutSync(req);
-    res.json({ ok: true });
+  app.get('/api/logout', (req: Request, res: Response, next: NextFunction) => {
+    req.logout((err) => {
+      if (err) {
+        next(err);
+
+        return;
+      }
+      res.json({ ok: true });
+    });
   });
 };
