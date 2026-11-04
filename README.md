@@ -23,7 +23,6 @@ REST API for a small family cookbook app: recipes, categories, and Google sign-i
 | `npm start` | Run the compiled app: **`node dist/index.js`** (run **`build`** first). |
 | `npm run mongo:dump` | Download a gzipped backup of the MongoDB database (manual; see [Database backup](#database-backup)). |
 | `npm run migrate:recipe-categories` | One-off migration script for recipe categories. |
-| `npm run import:recipes` | Import recipes from JSON (see `scripts/import-recipes-from-json.ts`). |
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for a deeper walkthrough of the request lifecycle, auth flow, and data models.
 

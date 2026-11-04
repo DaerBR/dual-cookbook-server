@@ -31,8 +31,11 @@ export const createApp = (): express.Application => {
   const corsOrigin = allowlist.length > 0 ? allowlist : true;
 
   app.use(cors({ origin: corsOrigin, credentials: true }));
-  /** Default Express JSON limit is 100kb; base64 image payloads exceed that quickly (see `MAX_RECIPE_IMAGE_BYTES` in controllers). */
-  app.use(express.json({ limit: '10mb' }));
+  /**
+   * Default Express JSON limit is 100kb; base64 image payloads exceed that quickly (see `MAX_RECIPE_IMAGE_BYTES` in controllers).
+   * Base64 inflates size by ~4/3, so a 7 MB image is ~9.3 MB of JSON — keep headroom for the rest of the body.
+   */
+  app.use(express.json({ limit: '12mb' }));
 
   const sessionCookieCrossSite = env.NODE_ENV === 'production';
 

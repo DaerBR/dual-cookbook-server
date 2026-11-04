@@ -70,7 +70,7 @@ export const createRecipe = async (req: Request, res: Response): Promise<void> =
     recipeTitle: recipeTitle.trim(),
     categories: categoryIds,
     description: typeof body.description === 'string' ? body.description.trim() : undefined,
-    ...(ingredientsResult.value === undefined ? {} : { ingredients: ingredientsResult.value }),
+    ingredients: ingredientsResult.value,
     steps: stepsResult.value,
     createdBy: req.user.id,
     ...(sourceUrl === undefined ? {} : { sourceUrl }),
@@ -189,21 +189,14 @@ export const updateRecipe = async (req: Request, res: Response): Promise<void> =
   }
 
   if (body.ingredients !== undefined) {
-    if (body.ingredients === null) {
-      $unset.ingredients = '';
-    } else {
-      const ingredientsResult = parseRecipeIngredients(body.ingredients);
+    const ingredientsResult = parseRecipeIngredients(body.ingredients);
 
-      if (!ingredientsResult.ok) {
-        jsonError(res, 400, ingredientsResult.error);
+    if (!ingredientsResult.ok) {
+      jsonError(res, 400, ingredientsResult.error);
 
-        return;
-      }
-
-      if (ingredientsResult.value !== undefined) {
-        $set.ingredients = ingredientsResult.value;
-      }
+      return;
     }
+    $set.ingredients = ingredientsResult.value;
   }
 
   if (body.recipeImage !== undefined && body.recipeImage !== null) {

@@ -12,7 +12,6 @@
     "lint": "eslint .",
     "migrate:recipe-categories": "tsx scripts/migrate-recipe-categories.ts",
     "migrate:recipe-title": "tsx scripts/migrate-recipe-title.ts",
-    "import:recipes": "tsx scripts/import-recipes-from-json.ts",
     "mongo:dump": "tsx scripts/mongo-dump.ts",
     "prepare": "husky"
   },

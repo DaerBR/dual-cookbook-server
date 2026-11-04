@@ -1,6 +1,6 @@
 import { isValidObjectId } from '../utils/mongo';
 
-const MAX_RECIPE_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_RECIPE_IMAGE_BYTES = 7 * 1024 * 1024;
 
 const MAX_INGREDIENT_LENGTH = 255;
 
@@ -78,7 +78,7 @@ const parseImageUpload = (raw: unknown, field: string): ParseRecipeImageUploadRe
   }
 
   if (buffer.length > MAX_RECIPE_IMAGE_BYTES) {
-    return { ok: false, error: `${field} must be at most 5 MB` };
+    return { ok: false, error: `${field} must be at most ${MAX_RECIPE_IMAGE_BYTES / (1024 * 1024)} MB` };
   }
 
   const finalMime = mime ?? mimeFromExt;
@@ -108,24 +108,28 @@ export type ParsedRecipeIngredient = {
   text: string;
 };
 
-type ParseRecipeIngredientsOk = { ok: true; value: ParsedRecipeIngredient[] | undefined };
+type ParseRecipeIngredientsOk = { ok: true; value: ParsedRecipeIngredient[] };
 type ParseRecipeIngredientsErr = { error: string; ok: false };
 
 export type ParseRecipeIngredientsResult = ParseRecipeIngredientsOk | ParseRecipeIngredientsErr;
 
 /**
- * Parses optional `ingredients`: array of `{ text }`; each `text` at most {@link MAX_INGREDIENT_LENGTH} chars.
- * Omit (`undefined` / `null`) means no ingredients in the payload. Create/update replace the full list when present.
+ * Parses `ingredients`: non-empty array of `{ text }`; each `text` at most {@link MAX_INGREDIENT_LENGTH} chars.
+ * Create/update always replace the full list; the server assigns new subdocument ids.
  */
 export const parseRecipeIngredients = (raw: unknown): ParseRecipeIngredientsResult => {
   const field = 'ingredients';
 
   if (raw === undefined || raw === null) {
-    return { ok: true, value: undefined };
+    return { ok: false, error: `Field ${field} is required` };
   }
 
   if (!Array.isArray(raw)) {
     return { ok: false, error: `${field} must be an array` };
+  }
+
+  if (raw.length < 1) {
+    return { ok: false, error: `${field} must contain at least one entry` };
   }
 
   const value: ParsedRecipeIngredient[] = [];

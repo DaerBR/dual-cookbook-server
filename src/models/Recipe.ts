@@ -30,7 +30,7 @@ export interface IRecipe extends Document {
   createdBy: Types.ObjectId;
   description?: string;
   /** Ordered ingredients; writes replace the whole array (new subdocument ids each time). */
-  ingredients?: RecipeIngredient[];
+  ingredients: RecipeIngredient[];
   recipeImage?: RecipeImage;
   recipeTitle: string;
   sourceUrl?: string;
@@ -87,6 +87,13 @@ const recipeSchema = new Schema<IRecipe>({
   description: { type: String, trim: true },
   ingredients: {
     type: [recipeIngredientSchema],
+    required: true,
+    validate: {
+      validator(value: unknown[]) {
+        return Array.isArray(value) && value.length >= 1;
+      },
+      message: 'At least one ingredient is required',
+    },
   },
   steps: {
     type: [recipeStepSchema],
