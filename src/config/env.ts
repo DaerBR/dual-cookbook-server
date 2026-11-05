@@ -19,6 +19,8 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
   CLOUDINARY_BASE_URL: z.string().url().optional(),
+  /** YouTube Data API v3 key for recipe import. Without it the server still runs, but YouTube imports answer 503. */
+  YOUTUBE_API_KEY: z.string().optional(),
   /** Overrides the default "Not tested yet" category id (see `src/config/untestedCategory.ts`). */
   UNTESTED_CATEGORY_ID: z
     .string()

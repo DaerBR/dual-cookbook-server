@@ -254,7 +254,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         tags: ['Recipes'],
         summary: 'Parse an external page into a recipe draft (not saved)',
         description:
-          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username), Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API), and YouTube videos (`youtube.com/watch?v=`, `m.youtube.com`, `youtu.be/`, `/live/`, `/embed/`; Shorts URLs are not supported).',
+          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username), Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API), and YouTube videos (read via the official YouTube Data API; `youtube.com/watch?v=`, `m.youtube.com`, `youtu.be/`, `/live/`, `/embed/`; Shorts URLs are not supported).',
         security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
@@ -284,7 +284,12 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorMessage' } } },
           },
           '502': {
-            description: 'Upstream site unreachable, returned an error status, or did not return HTML',
+            description: 'Upstream site unreachable, returned an error status, or returned an unexpected format',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorMessage' } } },
+          },
+          '503': {
+            description:
+              'Upstream site is rate-limiting requests (HTTP 429), or the source is not configured on the server (e.g. `YOUTUBE_API_KEY` missing)',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorMessage' } } },
           },
           '504': {

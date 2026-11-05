@@ -20,6 +20,10 @@ const fetchExternal = async (url: URL, headers: Record<string, string>): Promise
       throw new HttpError(422, `Page not found: ${url.href}`);
     }
 
+    if (response.status === 429) {
+      throw new HttpError(503, `${url.hostname} is rate-limiting requests, try again later`);
+    }
+
     throw new HttpError(502, `${url.hostname} responded with status ${response.status}`);
   }
 
@@ -45,8 +49,9 @@ export const fetchHtml = async (url: URL): Promise<string> => {
   return await response.text();
 };
 
-export const fetchJson = async (url: URL): Promise<unknown> => {
-  const response = await fetchExternal(url, { Accept: 'application/json' });
+/** `headers` is for extra request headers, e.g. API keys (keep keys out of the URL so they never leak into error messages). */
+export const fetchJson = async (url: URL, headers: Record<string, string> = {}): Promise<unknown> => {
+  const response = await fetchExternal(url, { Accept: 'application/json', ...headers });
 
   assertContentType(response, 'application/json');
 
