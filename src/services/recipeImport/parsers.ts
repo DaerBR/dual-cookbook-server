@@ -1,6 +1,7 @@
 import { getInstagramShortcode, parseInstagramPost } from './instagramParser';
 import { getTelegraphPath, parseTelegraphPage } from './telegraphParser';
 import type { ExternalRecipeParser } from './types';
+import { getYoutubeVideoId, parseYoutubeVideo } from './youtubeParser';
 
 const parsers: ExternalRecipeParser[] = [
   {
@@ -12,6 +13,11 @@ const parsers: ExternalRecipeParser[] = [
     name: 'Telegraph',
     canHandle: (url) => getTelegraphPath(url) !== null,
     parse: parseTelegraphPage,
+  },
+  {
+    name: 'YouTube',
+    canHandle: (url) => getYoutubeVideoId(url) !== null,
+    parse: parseYoutubeVideo,
   },
 ];
 

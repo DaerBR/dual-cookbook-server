@@ -254,7 +254,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         tags: ['Recipes'],
         summary: 'Parse an external page into a recipe draft (not saved)',
         description:
-          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username) and Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API).',
+          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username), Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API), and YouTube videos (`youtube.com/watch?v=`, `m.youtube.com`, `youtu.be/`, `/live/`, `/embed/`; Shorts URLs are not supported).',
         security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
@@ -697,18 +697,23 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         properties: {
           recipeTitle: {
             type: 'string',
-            description: 'Instagram: first non-empty caption line. Telegraph: article title. Max 100 chars.',
+            description:
+              'Instagram: first non-empty caption line. Telegraph: article title. YouTube: video title. Max 100 chars.',
             example: '🍜🍥 Шою Рамен (Shoyu Ramen)',
           },
           steps: {
             type: 'array',
             description:
-              'Plain strings (not `RecipeStepInput` objects). Instagram: one entry with the full caption. Telegraph: one entry with the full article text (one line per paragraph).',
+              'Plain strings (not `RecipeStepInput` objects). Instagram: one entry with the full caption. Telegraph: one entry with the full article text (one line per paragraph). YouTube: one entry with the full video description.',
             items: { type: 'string' },
           },
           ingredients: { type: 'array', items: { type: 'string' } },
           description: { type: 'string' },
-          imageUrl: { type: 'string', format: 'uri', description: 'Telegraph: the article cover image' },
+          imageUrl: {
+            type: 'string',
+            format: 'uri',
+            description: 'Telegraph: the article cover image. YouTube: the largest video thumbnail',
+          },
           sourceUrl: {
             type: 'string',
             format: 'uri',

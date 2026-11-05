@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { fetchJson } from './fetchExternal';
 import type { ExternalRecipeDraft } from './types';
 import { HttpError } from '../../utils/httpError';
@@ -27,6 +28,30 @@ interface TelegraphApiResponse {
   ok: boolean;
   result?: TelegraphPage;
 }
+
+/** `z.lazy` lets the node schema refer to itself; the annotation ties it to the interfaces above. */
+const telegraphNodeSchema: z.ZodType<TelegraphNode> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.object({
+      tag: z.string(),
+      attrs: z.record(z.string(), z.string()).optional(),
+      children: z.array(telegraphNodeSchema).optional(),
+    }),
+  ]),
+);
+
+const telegraphApiResponseSchema: z.ZodType<TelegraphApiResponse> = z.object({
+  ok: z.boolean(),
+  error: z.string().optional(),
+  result: z
+    .object({
+      title: z.string(),
+      image_url: z.string().optional(),
+      content: z.array(telegraphNodeSchema).optional(),
+    })
+    .optional(),
+});
 
 /** Tags rendered as their own line(s) in the extracted text. */
 const BLOCK_TAGS = new Set(['p', 'h3', 'h4', 'blockquote', 'aside', 'pre', 'figcaption', 'li']);
@@ -116,8 +141,14 @@ export const parseTelegraphPage = async (url: URL): Promise<ExternalRecipeDraft>
   const apiUrl = new URL(`https://api.telegra.ph/getPage/${path}`);
   apiUrl.searchParams.set('return_content', 'true');
 
+  const parsed = telegraphApiResponseSchema.safeParse(await fetchJson(apiUrl));
+
+  if (!parsed.success) {
+    throw new HttpError(502, 'Unexpected Telegraph API response format');
+  }
+
   /** The API answers 200 even for errors — `ok: false` with e.g. `error: "PAGE_NOT_FOUND"`. */
-  const response = (await fetchJson(apiUrl)) as TelegraphApiResponse;
+  const response = parsed.data;
 
   if (!response.ok || !response.result) {
     if (response.error === 'PAGE_NOT_FOUND') {
