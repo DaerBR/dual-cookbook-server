@@ -14,6 +14,7 @@ import { destroyImageByPublicId, uploadRecipeImage } from '../services/cloudinar
 import { jsonError } from '../utils/jsonError';
 import { renameMongoIdsForClient } from '../utils/renameMongoIdsForClient';
 import { findRecipeParser, supportedSourceNames } from '../services/recipeImport/parsers';
+import { stripEmojiFromDraft } from '../services/recipeImport/stripEmoji';
 import { getUntestedCategoryId } from '../config/untestedCategory';
 
 export const createRecipe = async (req: Request, res: Response): Promise<void> => {
@@ -422,5 +423,5 @@ export const importRecipeDraft = async (req: Request, res: Response): Promise<vo
 
   const draft = await parser.parse(parsedUrl);
 
-  res.json(draft);
+  res.json(stripEmojiFromDraft(draft));
 };
