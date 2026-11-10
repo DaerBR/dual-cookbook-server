@@ -70,20 +70,23 @@ export const parseInstagramPost = async (url: URL): Promise<ExternalRecipeDraft>
   const $ = load(html);
 
   /**
-   * Instagram answers 200 even for missing/private/age-restricted posts — the absent description is the only signal.
-   * Some responses carry the caption only in `<meta name="description">` (no `og:description`), so fall back to it.
+   * Instagram answers 200 even for missing/private/age-restricted posts — absent description metas are the only signal.
+   * The caption may be in either meta: some responses have an `og:description` without the quoted caption while
+   * `<meta name="description">` has it (or vice versa), so use the first one that actually contains a caption.
    */
-  const description =
-    $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content');
+  const descriptions = [
+    $('meta[property="og:description"]').attr('content'),
+    $('meta[name="description"]').attr('content'),
+  ].filter((content): content is string => Boolean(content));
 
-  if (!description) {
+  if (descriptions.length === 0) {
     throw new HttpError(
       422,
       'Instagram post is unavailable. Check that it opens without logging in (not private or age-restricted)',
     );
   }
 
-  const caption = extractCaption(description);
+  const caption = descriptions.map(extractCaption).find((text) => text !== null);
 
   if (!caption) {
     throw new HttpError(422, 'This Instagram post has no caption');
