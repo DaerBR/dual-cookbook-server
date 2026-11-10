@@ -1,4 +1,5 @@
 import { getInstagramShortcode, parseInstagramPost } from './instagramParser';
+import { canParseSchemaRecipe, parseSchemaRecipePage } from './schemaRecipeParser';
 import { getTelegraphPath, parseTelegraphPage } from './telegraphParser';
 import type { ExternalRecipeParser } from './types';
 import { getYoutubeVideoId, parseYoutubeVideo } from './youtubeParser';
@@ -18,6 +19,12 @@ const parsers: ExternalRecipeParser[] = [
     name: 'YouTube',
     canHandle: (url) => getYoutubeVideoId(url) !== null,
     parse: parseYoutubeVideo,
+  },
+  /** Catch-all for any https URL — must stay last so the dedicated parsers above win. */
+  {
+    name: 'Recipe websites (schema.org Recipe data)',
+    canHandle: canParseSchemaRecipe,
+    parse: parseSchemaRecipePage,
   },
 ];
 

@@ -103,13 +103,16 @@ For request/response shapes and query parameters, use Swagger.
 |--------|---------------|----------------|
 | Instagram | `instagram.com/p/…`, `/reel/…`, `/reels/…`, `/tv/…` (optionally `/<user>/…`) | HTML `og:description` / `<meta name="description">` (caption; current `CAPTION - @user on DATE` and legacy `likes, comments …: "CAPTION"` formats) |
 | Telegraph | `telegra.ph/<path>`, `graph.org/<path>` (official mirror) | Official JSON API `api.telegra.ph/getPage/<path>?return_content=true` |
+| Recipe websites (catch-all, checked last) | Any other `https` URL | schema.org `Recipe` structured data: JSON-LD first, microdata fallback (title, description, ingredients, steps; images ignored) |
 
 Draft shape (fields a source does not provide are omitted):
 
 ```ts
 {
-  recipeTitle?: string;   // Instagram: first caption line; Telegraph: article title (max 100 chars)
-  steps?: string[];       // one entry with the full caption / article text (plain strings)
+  recipeTitle?: string;   // Instagram: first caption line; Telegraph: article title; recipe sites: Recipe `name` (max 100 chars)
+  description?: string;   // recipe sites: Recipe `description`
+  ingredients?: string[]; // recipe sites: `recipeIngredient`, one string per ingredient
+  steps?: string[];       // Instagram/Telegraph: one entry with the full caption / article text; recipe sites: one entry per step
   imageUrl?: string;      // Telegraph: cover image
   sourceUrl: string;      // canonical URL, tracking params removed
 }
@@ -122,8 +125,10 @@ Draft shape (fields a source does not provide are omitted):
 3. **`services/recipeImport/parsers.ts`** — the registry: a list of `ExternalRecipeParser` objects (`name`, `canHandle(url)`, `parse(url)`; interface in `types.ts`). `findRecipeParser(url)` returns the first one that can handle the URL; `supportedSourceNames` feeds the error message.
 4. **The source parser**:
    - **`instagramParser.ts`** — `getInstagramShortcode(url)` matches the URL; `parseInstagramPost(url)` normalizes it to `/p/<shortcode>/`, fetches the HTML and extracts the caption from `og:description` (or `<meta name="description">` when that's missing).
+   - **`schemaRecipeParser.ts`** — the catch-all, registered last so the dedicated parsers win. Fetches via `fetchPublicHtml`, then looks for a schema.org `Recipe`: first in JSON-LD (`<script type="application/ld+json">`, searched depth-first so `@graph`, arrays and nesting all work; invalid blocks are skipped), then in microdata (`itemscope itemtype=".../Recipe"`). Handles the usual `recipeInstructions` shapes — one string with line breaks, strings, `HowToStep`s, `HowToSection`s (section name goes on its own line before the section's first step) — and strips HTML tags/entities from values. No ingredients and no steps → **422**. There is deliberately no guessing from CSS classes like `.ingredients` (too many false positives).
    - **`telegraphParser.ts`** — `getTelegraphPath(url)` accepts only the Telegraph hosts and a single path segment (rules out `/file/…`, `/api`, `/`). `parseTelegraphPage(url)` calls the Telegraph API, checks `ok` in the body (the API answers HTTP 200 even for errors; `PAGE_NOT_FOUND` → **422**, other errors → **502**), converts the content tree to text, and returns the draft. An article with no text (e.g. photos only) → **422**.
-5. **`services/recipeImport/fetchExternal.ts`** — shared HTTP layer: `fetchHtml` (Instagram, `facebookexternalhit` User-Agent) and `fetchJson` (Telegraph). Both use a 10 s timeout and map failures to `HttpError`: timeout → **504**, unreachable / non-2xx / wrong content type → **502**, upstream 404 → **422**.
+5. **`services/recipeImport/fetchExternal.ts`** — shared HTTP layer: `fetchHtml` (Instagram, `facebookexternalhit` User-Agent), `fetchJson` (Telegraph, YouTube) and `fetchPublicHtml` (recipe sites). All use a 10 s timeout and map failures to `HttpError`: timeout → **504**, unreachable / non-2xx / wrong content type → **502**, upstream 404 → **422**.
+   - **`fetchPublicHtml`** fetches *user-supplied* URLs, so it guards against SSRF: every hop (the URL and each redirect, followed manually, max 5) must pass **`assertPublicUrl.ts`** — https only, no custom port, and every resolved address must be outside loopback / private / link-local (incl. cloud metadata `169.254.169.254`) / CGNAT / multicast / reserved ranges → otherwise **400**. The body is capped at 5 MB (**502** above that). It identifies itself as `DualCookbookImporter/1.0`. Known gap: `fetch` resolves the hostname again, so DNS rebinding between the check and the request isn't caught.
 6. **`app.ts`** — the global error handler turns any `HttpError` into `{ message }` with its status.
 
 "Nothing to import" is **422**, not 404, on purpose: the client redirects to its Not Found page on 404.

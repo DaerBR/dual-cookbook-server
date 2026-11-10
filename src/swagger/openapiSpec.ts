@@ -254,7 +254,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         tags: ['Recipes'],
         summary: 'Parse an external page into a recipe draft (not saved)',
         description:
-          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username), Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API), and YouTube videos (read via the official YouTube Data API; `youtube.com/watch?v=`, `m.youtube.com`, `youtu.be/`, `/live/`, `/embed/`; Shorts URLs are not supported).',
+          'Fetches the given URL server-side and extracts recipe fields to prefill the Create Recipe form. Nothing is written to the database — the client saves via `POST /api/recipes`. Currently supports public Instagram posts/reels (`/p/`, `/reel/`, `/reels/`, `/tv/`, optionally prefixed with a username), Telegraph articles (`telegra.ph/<path>` or the `graph.org` mirror, read via the official Telegraph API), and YouTube videos (read via the official YouTube Data API; `youtube.com/watch?v=`, `m.youtube.com`, `youtu.be/`, `/live/`, `/embed/`; Shorts URLs are not supported). Any other https URL is treated as a recipe website and read from its schema.org `Recipe` structured data (JSON-LD, falling back to microdata); private/internal addresses are refused.',
         security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
@@ -274,13 +274,14 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
             },
           },
           '400': {
-            description: 'Missing/invalid URL, non-https URL, or unsupported site',
+            description:
+              'Missing/invalid URL, non-https URL, URL with a custom port, or an address that resolves to a private/internal network',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorMessage' } } },
           },
           '401': { description: 'Not authenticated' },
           '422': {
             description:
-              'Page fetched but nothing to import (post/article not found, private, or has no caption/text). Deliberately not 404 — the client redirects to its Not Found page on 404.',
+              'Page fetched but nothing to import (post/article not found, private, or has no caption/text; recipe website without schema.org Recipe data). Deliberately not 404 — the client redirects to its Not Found page on 404.',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorMessage' } } },
           },
           '502': {
@@ -703,17 +704,21 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
           recipeTitle: {
             type: 'string',
             description:
-              'Instagram: first non-empty caption line. Telegraph: article title. YouTube: video title. Max 100 chars.',
+              'Instagram: first non-empty caption line. Telegraph: article title. YouTube: video title. Recipe websites: Recipe `name`. Max 100 chars.',
             example: '🍜🍥 Шою Рамен (Shoyu Ramen)',
           },
           steps: {
             type: 'array',
             description:
-              'Plain strings (not `RecipeStepInput` objects). Instagram: one entry with the full caption. Telegraph: one entry with the full article text (one line per paragraph). YouTube: one entry with the full video description.',
+              'Plain strings (not `RecipeStepInput` objects). Instagram: one entry with the full caption. Telegraph: one entry with the full article text (one line per paragraph). YouTube: one entry with the full video description. Recipe websites: one entry per step.',
             items: { type: 'string' },
           },
-          ingredients: { type: 'array', items: { type: 'string' } },
-          description: { type: 'string' },
+          ingredients: {
+            type: 'array',
+            description: 'Recipe websites only: one string per ingredient',
+            items: { type: 'string' },
+          },
+          description: { type: 'string', description: 'Recipe websites only: Recipe `description`' },
           imageUrl: {
             type: 'string',
             format: 'uri',
