@@ -101,7 +101,7 @@ For request/response shapes and query parameters, use Swagger.
 
 | Source | Accepted URLs | How it is read |
 |--------|---------------|----------------|
-| Instagram | `instagram.com/p/…`, `/reel/…`, `/reels/…`, `/tv/…` (optionally `/<user>/…`) | HTML `og:description` meta (caption) |
+| Instagram | `instagram.com/p/…`, `/reel/…`, `/reels/…`, `/tv/…` (optionally `/<user>/…`) | HTML `og:description` meta, falling back to `<meta name="description">` (caption) |
 | Telegraph | `telegra.ph/<path>`, `graph.org/<path>` (official mirror) | Official JSON API `api.telegra.ph/getPage/<path>?return_content=true` |
 
 Draft shape (fields a source does not provide are omitted):
@@ -121,7 +121,7 @@ Draft shape (fields a source does not provide are omitted):
 2. **`controllers/recipeController.ts` → `importRecipeDraft`** — validates the input only (`url` present, parseable, `https:`; otherwise **400**), asks the registry for a parser (none → **400** `Unsupported site. Supported: …`), then responds with `await parser.parse(url)`. It knows nothing about specific sites.
 3. **`services/recipeImport/parsers.ts`** — the registry: a list of `ExternalRecipeParser` objects (`name`, `canHandle(url)`, `parse(url)`; interface in `types.ts`). `findRecipeParser(url)` returns the first one that can handle the URL; `supportedSourceNames` feeds the error message.
 4. **The source parser**:
-   - **`instagramParser.ts`** — `getInstagramShortcode(url)` matches the URL; `parseInstagramPost(url)` normalizes it to `/p/<shortcode>/`, fetches the HTML and extracts the caption from `og:description`.
+   - **`instagramParser.ts`** — `getInstagramShortcode(url)` matches the URL; `parseInstagramPost(url)` normalizes it to `/p/<shortcode>/`, fetches the HTML and extracts the caption from `og:description` (or `<meta name="description">` when that's missing).
    - **`telegraphParser.ts`** — `getTelegraphPath(url)` accepts only the Telegraph hosts and a single path segment (rules out `/file/…`, `/api`, `/`). `parseTelegraphPage(url)` calls the Telegraph API, checks `ok` in the body (the API answers HTTP 200 even for errors; `PAGE_NOT_FOUND` → **422**, other errors → **502**), converts the content tree to text, and returns the draft. An article with no text (e.g. photos only) → **422**.
 5. **`services/recipeImport/fetchExternal.ts`** — shared HTTP layer: `fetchHtml` (Instagram, `facebookexternalhit` User-Agent) and `fetchJson` (Telegraph). Both use a 10 s timeout and map failures to `HttpError`: timeout → **504**, unreachable / non-2xx / wrong content type → **502**, upstream 404 → **422**.
 6. **`app.ts`** — the global error handler turns any `HttpError` into `{ message }` with its status.

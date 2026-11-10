@@ -27,20 +27,20 @@ export const getInstagramShortcode = (url: URL) => {
 const MAX_TITLE_LENGTH = 100;
 
 /**
- * Pulls the caption out of Instagram's og:description, which looks like:
+ * Pulls the caption out of Instagram's description meta, which looks like:
  * `8,345 likes, 71 comments - username on October 2, 2026: "CAPTION".`
  * Returns `null` when there is no quoted caption (post without a caption).
  */
-const extractCaption = (ogDescription: string): string | null => {
-  const start = ogDescription.indexOf('"');
-  const end = ogDescription.lastIndexOf('"');
+const extractCaption = (description: string): string | null => {
+  const start = description.indexOf('"');
+  const end = description.lastIndexOf('"');
 
   if (start === -1 || end <= start) {
     return null;
   }
 
   /** Instagram uses U+2028 (line separator) for some line breaks; normalize to `\n`. */
-  const caption = ogDescription
+  const caption = description
     .slice(start + 1, end)
     .replace(/\u2028/g, '\n')
     .trim();
@@ -69,14 +69,21 @@ export const parseInstagramPost = async (url: URL): Promise<ExternalRecipeDraft>
   const html = await fetchHtml(canonicalUrl);
   const $ = load(html);
 
-  /** Instagram answers 200 even for missing/private posts — the absent og:description is the only signal. */
-  const ogDescription = $('meta[property="og:description"]').attr('content');
+  /**
+   * Instagram answers 200 even for missing/private/age-restricted posts — the absent description is the only signal.
+   * Some responses carry the caption only in `<meta name="description">` (no `og:description`), so fall back to it.
+   */
+  const description =
+    $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content');
 
-  if (!ogDescription) {
-    throw new HttpError(422, 'Instagram post not found or not public');
+  if (!description) {
+    throw new HttpError(
+      422,
+      'Instagram post is unavailable. Check that it opens without logging in (not private or age-restricted)',
+    );
   }
 
-  const caption = extractCaption(ogDescription);
+  const caption = extractCaption(description);
 
   if (!caption) {
     throw new HttpError(422, 'This Instagram post has no caption');
