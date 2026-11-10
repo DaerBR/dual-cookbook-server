@@ -121,7 +121,7 @@ Draft shape (fields a source does not provide are omitted):
 ### Request flow
 
 1. **`routes/recipeRoutes.ts`** — `POST /import` → `asyncHandler(importRecipeDraft)`. Login is required (`requireLoginExceptSafeMethods`), and anything thrown below goes to the global error handler.
-2. **`controllers/recipeController.ts` → `importRecipeDraft`** — validates the input only (`url` present, parseable, `https:`; otherwise **400**), asks the registry for a parser (none → **400** `Unsupported site. Supported: …`), then responds with `await parser.parse(url)`. It knows nothing about specific sites.
+2. **`controllers/recipeController.ts` → `importRecipeDraft`** — validates the input only (`url` present, parseable, `https:`; otherwise **400**), asks the registry for a parser (none → **400** `Unsupported site. Supported: …`), then responds with `cleanDraft(await parser.parse(url))`. It knows nothing about specific sites. `cleanDraft` (`services/recipeImport/cleanText.ts`) strips emoji (keycap numbers at a line start become `1.`) and hashtags (a run ending a line is removed; one inside a sentence keeps its word) from every text field, dropping fields left empty.
 3. **`services/recipeImport/parsers.ts`** — the registry: a list of `ExternalRecipeParser` objects (`name`, `canHandle(url)`, `parse(url)`; interface in `types.ts`). `findRecipeParser(url)` returns the first one that can handle the URL; `supportedSourceNames` feeds the error message.
 4. **The source parser**:
    - **`instagramParser.ts`** — `getInstagramShortcode(url)` matches the URL; `parseInstagramPost(url)` normalizes it to `/p/<shortcode>/`, fetches the HTML and extracts the caption from `og:description` (or `<meta name="description">` when that's missing).

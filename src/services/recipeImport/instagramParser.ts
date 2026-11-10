@@ -1,7 +1,7 @@
 import { load } from 'cheerio';
 import { fetchHtml } from './fetchExternal';
 import type { ExternalRecipeDraft } from './types';
-import { stripEmoji } from './stripEmoji';
+import { cleanText } from './cleanText';
 import { HttpError } from '../../utils/httpError';
 
 export const getInstagramShortcode = (url: URL) => {
@@ -59,8 +59,8 @@ const extractCaption = (description: string): string | null => {
 const extractTitle = (caption: string): string | undefined => {
   const firstLine = caption
     .split('\n')
-    // Strip before picking, so an emoji-only first line ("🔥🔥🔥") doesn't become the title
-    .map(stripEmoji)
+    // Clean before picking, so an emoji- or hashtag-only first line ("🔥🔥🔥", "#рецепт #вечеря") doesn't become the title
+    .map(cleanText)
     .find((line) => line.length > 0);
 
   return firstLine?.slice(0, MAX_TITLE_LENGTH).trim();
