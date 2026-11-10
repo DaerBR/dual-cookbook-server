@@ -26,24 +26,32 @@ export const getInstagramShortcode = (url: URL) => {
 
 const MAX_TITLE_LENGTH = 100;
 
+/** Legacy format: `8,345 likes, 71 comments - username on October 2, 2026: "CAPTION".` */
+const LEGACY_PREFIX = /^[\d.,]+[KM]?\s+likes?,\s+[\d.,]+[KM]?\s+comments?\s+-[^"\n]*?:\s*"/;
+
+/** Current format (since ~Nov 2026): `CAPTION - @username on October 2, 2026` (no quotes, no counters). */
+const CURRENT_SUFFIX = /(?:^|\s+-\s+)@[\w.]+\s+on\s+[^\n]*$/;
+
 /**
- * Pulls the caption out of Instagram's description meta, which looks like:
- * `8,345 likes, 71 comments - username on October 2, 2026: "CAPTION".`
- * Returns `null` when there is no quoted caption (post without a caption).
+ * Pulls the caption out of Instagram's description meta (see the two formats above).
+ * Returns `null` when the meta matches neither format or carries no caption.
  */
 const extractCaption = (description: string): string | null => {
-  const start = description.indexOf('"');
-  const end = description.lastIndexOf('"');
+  let rawCaption: string;
 
-  if (start === -1 || end <= start) {
+  if (LEGACY_PREFIX.test(description)) {
+    const start = description.indexOf('"');
+    const end = description.lastIndexOf('"');
+
+    rawCaption = end > start ? description.slice(start + 1, end) : '';
+  } else if (CURRENT_SUFFIX.test(description)) {
+    rawCaption = description.replace(CURRENT_SUFFIX, '');
+  } else {
     return null;
   }
 
   /** Instagram uses U+2028 (line separator) for some line breaks; normalize to `\n`. */
-  const caption = description
-    .slice(start + 1, end)
-    .replace(/\u2028/g, '\n')
-    .trim();
+  const caption = rawCaption.replace(/\u2028/g, '\n').trim();
 
   return caption || null;
 };
@@ -71,8 +79,7 @@ export const parseInstagramPost = async (url: URL): Promise<ExternalRecipeDraft>
 
   /**
    * Instagram answers 200 even for missing/private/age-restricted posts — absent description metas are the only signal.
-   * The caption may be in either meta: some responses have an `og:description` without the quoted caption while
-   * `<meta name="description">` has it (or vice versa), so use the first one that actually contains a caption.
+   * Check both metas and use the first one that actually yields a caption, in case one of them lacks it.
    */
   const descriptions = [
     $('meta[property="og:description"]').attr('content'),

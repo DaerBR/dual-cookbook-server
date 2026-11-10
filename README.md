@@ -101,7 +101,7 @@ For request/response shapes and query parameters, use Swagger.
 
 | Source | Accepted URLs | How it is read |
 |--------|---------------|----------------|
-| Instagram | `instagram.com/p/…`, `/reel/…`, `/reels/…`, `/tv/…` (optionally `/<user>/…`) | HTML `og:description` meta, falling back to `<meta name="description">` (caption) |
+| Instagram | `instagram.com/p/…`, `/reel/…`, `/reels/…`, `/tv/…` (optionally `/<user>/…`) | HTML `og:description` / `<meta name="description">` (caption; current `CAPTION - @user on DATE` and legacy `likes, comments …: "CAPTION"` formats) |
 | Telegraph | `telegra.ph/<path>`, `graph.org/<path>` (official mirror) | Official JSON API `api.telegra.ph/getPage/<path>?return_content=true` |
 
 Draft shape (fields a source does not provide are omitted):
