@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r \".tool_input.file_path // empty\"); case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/*.ts|\"$CLAUDE_PROJECT_DIR\"/*.tsx) out=$(cd \"$CLAUDE_PROJECT_DIR\" && npx eslint --no-warn-ignored \"$f\" 2>&1) || { echo \"$out\" >&2; exit 2; } ;; esac; exit 0",
+            "timeout": 60,
+            "statusMessage": "Linting edited file..."
+          }
+        ]
+      }
+    ]
+  }
+}

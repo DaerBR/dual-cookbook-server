@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+General working rules (git, scope, editing, tooling) live in the user-level `~/.claude/CLAUDE.md`; this file holds only what is specific to this repository.
+
 ## Commands
 
 ```bash
@@ -60,3 +62,7 @@ For cross-origin SPA: set `CORS_ORIGIN` (comma-separated exact origins) and pass
 ## TypeScript
 
 Strict mode + `noUnusedLocals` + `noUnusedParameters` + `noImplicitReturns`. Module system: `NodeNext`. Target: `ES2022`. Only `src/` is compiled; `scripts/` runs via `tsx` directly and is excluded from `tsconfig.json`.
+
+## Verification
+- Recipe importers (`src/services/recipeImport/`: Instagram, YouTube, Telegraph, schema.org sites): external sites serve different content depending on IP, region and User-Agent, so Claude's own curl output is not representative. Base fixes on what the server actually receives — add a temporary dump of the fetched response (run the server locally and trigger the import), then remove it.
+- End backend changes with how to verify them: the Swagger UI (`/api/docs`) or a sample request with the expected status and response shape. Type-check and lint passing does not prove the endpoint works.
