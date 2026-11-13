@@ -78,7 +78,10 @@ const parseImageUpload = (raw: unknown, field: string): ParseRecipeImageUploadRe
   }
 
   if (buffer.length > MAX_RECIPE_IMAGE_BYTES) {
-    return { ok: false, error: `${field} must be at most ${MAX_RECIPE_IMAGE_BYTES / (1024 * 1024)} MB` };
+    return {
+      ok: false,
+      error: `${field}: provided image is too big - maximum image file size is ${MAX_RECIPE_IMAGE_BYTES / (1024 * 1024)} MB`,
+    };
   }
 
   const finalMime = mime ?? mimeFromExt;

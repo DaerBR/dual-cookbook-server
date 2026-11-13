@@ -25,7 +25,7 @@ Format with Prettier: `npx prettier --write src/`.
 
 **Entry flow:** `src/index.ts` loads `.env` / `.env.local` → validates env with Zod (`src/config/env.ts`) → connects Mongoose → calls `createApp()` from `src/app.ts` → listens.
 
-**`createApp()`** wires middleware in order: CORS → JSON body parser (10 MB limit for base64 image payloads) → `cookie-session` → Passport → routes → global error handler.
+**`createApp()`** wires middleware in order: CORS → JSON body parser (12 MB limit for base64 image payloads) → `cookie-session` → Passport → routes → global error handler.
 
 **Auth:** Google OAuth 2.0 via Passport (`src/services/passport.ts`). Login is email-allowlisted — only emails in `ALLOWED_EMAILS` env var (or the two hardcoded family defaults in `src/config/allowedEmails.ts`) can sign in. The OAuth callback sends user data to the opener tab via `window.opener.postMessage` and closes itself (popup flow). Sessions are stored in a signed cookie (`cookie-session`), 30-day max-age. In production, cookies are `SameSite: None; Secure` to support a cross-origin SPA.
 
@@ -45,7 +45,7 @@ Format with Prettier: `npx prettier --write src/`.
 - `Category` — name + optional image
 - `Recipe` — name, `categories[]` (ObjectId refs, min 1), `steps[]` (min 1), optional `ingredients[]`, `description`, `sourceUrl`, `recipeImage` (Cloudinary `publicId` + `secureUrl`), `createdBy`
 
-**Images:** Uploaded as base64 data-URIs in the request body; `src/services/cloudinaryRecipeImage.ts` uploads to Cloudinary under `dual-cookbook/recipes/<id>/` or `dual-cookbook/categories/<id>/`. Old images are deleted from Cloudinary on replace/delete. The JSON body limit is set to 10 MB to accommodate these payloads.
+**Images:** Uploaded as base64 data-URIs in the request body; `src/services/cloudinaryRecipeImage.ts` uploads to Cloudinary under `dual-cookbook/recipes/<id>/` or `dual-cookbook/categories/<id>/`. Old images are deleted from Cloudinary on replace/delete. Images are capped at 7 MB (`MAX_RECIPE_IMAGE_BYTES` in controllers); base64 inflates that to ~9.3 MB, so the JSON body limit is set to 12 MB to leave headroom for the rest of the body.
 
 **Key conventions:**
 - All async route handlers are wrapped in `asyncHandler` (`src/utils/asyncHandler.ts`) to forward rejections to Express error handling — never use `try/catch` in route handlers directly.
