@@ -10,7 +10,8 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser((id: string, done) => {
   User.findById(id)
-    .then((user) => done(null, user))
+    /** Falsy user makes Passport drop the session, so accounts removed from the allowlist are logged out. */
+    .then((user) => done(null, user && isEmailAllowed(user.email) ? user : false))
     .catch((err: Error) => done(err, null));
 });
 
@@ -26,17 +27,18 @@ passport.use(
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
+        const rawEmail = profile.emails?.[0]?.value;
+        const email = rawEmail?.trim().toLowerCase();
+
+        /** Checked before any lookup so existing users removed from the allowlist are rejected too. */
+        if (!email || !isEmailAllowed(email)) {
+          return done(null, false);
+        }
+
         const existingByGoogle = await User.findOne({ googleId: profile.id });
 
         if (existingByGoogle) {
           return done(null, existingByGoogle);
-        }
-
-        const rawEmail = profile.emails?.[0]?.value;
-        const email = rawEmail?.trim().toLowerCase();
-
-        if (!email || !isEmailAllowed(email)) {
-          return done(null, false);
         }
 
         const existingByEmail = await User.findOne({ email });
