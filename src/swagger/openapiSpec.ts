@@ -73,7 +73,7 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
         tags: ['Auth'],
         summary: 'Google OAuth callback (Google redirects here with ?code=&state=)',
         description:
-          'Passport validates the code, establishes the session cookie, then returns **200** `text/html`: a short script that `postMessage`s the user to `opener` and closes the popup. On auth failure, **302** to `/auth/google/failure`.',
+          'Passport validates the code, establishes the session cookie, then returns **200** `text/html`: a short script that `postMessage`s `{ type: "GOOGLE_AUTH_SUCCESS", payload }` to `opener` and closes the popup. If the account is not allowlisted, returns **403** `text/html`: a script that `postMessage`s `{ type: "GOOGLE_AUTH_FAILURE", message }` to `opener` and closes the popup, or (without an opener) a readable error page. If the user cancelled on Google (`?error=access_denied`), returns **200** `text/html` that `postMessage`s `{ type: "GOOGLE_AUTH_CANCELLED" }` and closes the popup.',
         parameters: [
           {
             name: 'code',
@@ -99,22 +99,12 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
               },
             },
           },
-          '302': {
-            description: 'Redirect to `/auth/google/failure` when Google login fails or user is not allowlisted',
-          },
-        },
-      },
-    },
-    '/auth/google/failure': {
-      get: {
-        tags: ['Auth'],
-        summary: 'OAuth failure (e.g. email not whitelisted)',
-        responses: {
           '403': {
-            description: 'Forbidden',
+            description:
+              'HTML page when the Google account is not allowlisted: postMessage `GOOGLE_AUTH_FAILURE` to opener + window.close(), or a readable error page without an opener',
             content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorMessage' },
+              'text/html': {
+                schema: { type: 'string' },
               },
             },
           },

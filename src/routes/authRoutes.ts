@@ -38,6 +38,104 @@ const getOriginFromReferer = (req: Request): string | undefined => {
   }
 };
 
+const NOT_AUTHORIZED_MESSAGE = 'Цьому аккаунту не надано дозвіл на користування додатком.';
+
+interface PopupMessage {
+  [key: string]: unknown;
+  type: 'GOOGLE_AUTH_SUCCESS' | 'GOOGLE_AUTH_FAILURE' | 'GOOGLE_AUTH_CANCELLED';
+}
+
+/**
+ * `<script>` for the OAuth popup: `postMessage`s `message` to the opener (if any) and closes the popup.
+ * Without an opener (e.g. `/auth/google` opened directly in a tab) the window stays open.
+ */
+const buildPopupScript = (req: Request, message: PopupMessage): string => {
+  const targetOrigin = resolvePostMessageTarget(req);
+
+  return `<script>
+        (function () {
+          const message = ${JSON.stringify(message)};
+          const target = ${JSON.stringify(targetOrigin)};
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(message, target);
+            window.close();
+          }
+        })();
+        </script>`;
+};
+
+const sendAuthSuccessPage = (req: Request, res: Response, user: Express.User): void => {
+  const payload = {
+    id: user.id,
+    displayName: user.displayName,
+    email: user.email,
+    createdAt: user.createdAt,
+  };
+
+  res.type('html').send(buildPopupScript(req, { type: 'GOOGLE_AUTH_SUCCESS', payload }));
+};
+
+/** Popup: notify the opener and close. Fallback (no opener): readable error page instead of raw JSON. */
+const sendAuthFailurePage = (req: Request, res: Response): void => {
+  res.status(403).type('html').send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign-in not allowed</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #fff; font-family: Roboto, sans-serif; }
+\t\tmain { padding: 24px; text-align: center; }
+\t\tp { color: rgb(237, 122, 65); font-size: 18px; margin: 0 0 20px; font-weight: 500}
+\t\tbutton { padding: 10px 28px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; height: 40px; background-color: #fd874c; border: none; color: #fff; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>${NOT_AUTHORIZED_MESSAGE}</p>
+      <button type="button" onclick="window.close()">Закрити</button>
+    </main>
+    ${buildPopupScript(req, { type: 'GOOGLE_AUTH_FAILURE', message: NOT_AUTHORIZED_MESSAGE })}
+  </body>
+</html>`);
+};
+
+/**
+ * Custom Passport callback (instead of `failureRedirect`) so the failure response still has `req.query.state`
+ * for the `postMessage` target. With a custom callback the session must be established via `req.logIn`.
+ */
+const handleGoogleCallback = (req: Request, res: Response, next: NextFunction) => {
+  /** User pressed "Cancel" on Google's screen. Passport would treat it as a failure ("not authorized"), so handle it first. */
+  if (req.query.error === 'access_denied') {
+    res.type('html').send(buildPopupScript(req, { type: 'GOOGLE_AUTH_CANCELLED' }));
+
+    return;
+  }
+
+  passport.authenticate('google', (err: unknown, user: Express.User | false | null | undefined) => {
+    if (err) {
+      next(err);
+
+      return;
+    }
+
+    if (!user) {
+      sendAuthFailurePage(req, res);
+
+      return;
+    }
+
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        next(loginErr);
+
+        return;
+      }
+      sendAuthSuccessPage(req, res, user);
+    });
+  })(req, res, next);
+};
+
 const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
   const allowlist = getCorsOriginAllowlist();
   const raw = req.query.return_origin;
@@ -80,46 +178,7 @@ const startGoogleAuth = (req: Request, res: Response, next: NextFunction) => {
 export const registerAuthRoutes = (app: Express): void => {
   app.get('/auth/google', startGoogleAuth);
 
-  app.get(
-    '/auth/google/callback',
-    passport.authenticate('google', {
-      failureRedirect: '/auth/google/failure',
-    }),
-    (req: Request, res: Response) => {
-      const user = req.user;
-
-      if (!user) {
-        res.redirect('/auth/google/failure');
-
-        return;
-      }
-
-      const payload = {
-        id: user.id,
-        displayName: user.displayName,
-        email: user.email,
-        createdAt: user.createdAt,
-      };
-      const targetOrigin = resolvePostMessageTarget(req);
-      const payloadJson = JSON.stringify(payload);
-
-      res.type('html').send(`<script>
-        (function () {
-          const payload = ${payloadJson};
-          const target = ${JSON.stringify(targetOrigin)};
-          if (window.opener && !window.opener.closed) {
-            window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', payload: payload }, target);
-          }
-          window.close();
-        })();
-        
-        </script>`);
-    },
-  );
-
-  app.get('/auth/google/failure', (_req: Request, res: Response) => {
-    jsonError(res, 403, 'Your Google account is not authorized to use this application.');
-  });
+  app.get('/auth/google/callback', handleGoogleCallback);
 
   app.get('/api/current_user', (req: Request, res: Response) => {
     res.set('Cache-Control', 'private, no-store');
