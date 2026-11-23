@@ -176,7 +176,7 @@ export const listCategoriesPaginated = async (req: Request, res: Response): Prom
 
   const [total, data] = await Promise.all([
     Category.countDocuments(filter),
-    Category.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean(),
+    Category.find(filter).collation({ locale: 'uk' }).sort({ name: 1 }).skip(skip).limit(limit).lean(),
   ]);
 
   res.json({
@@ -186,7 +186,7 @@ export const listCategoriesPaginated = async (req: Request, res: Response): Prom
 };
 
 export const listAllCategories = async (_req: Request, res: Response): Promise<void> => {
-  const data = await Category.find().sort({ name: 1 }).lean();
+  const data = await Category.find().collation({ locale: 'uk' }).sort({ name: 1 }).lean();
   res.json(renameMongoIdsForClient(data));
 };
 
