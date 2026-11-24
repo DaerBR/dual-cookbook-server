@@ -17,12 +17,12 @@ REST API for a small family cookbook app: recipes, categories, and Google sign-i
 
 | Command | Description |
 |--------|-------------|
-| `npm run dev` | Run `src/index.ts` with **tsx** and watch mode (no `dist` build). |
-| `npm run server` | Same entry with **nodemon** + **tsx** (restart on file changes). |
-| `npm run build` | Compile TypeScript to **`dist/`** (`tsc`). |
-| `npm start` | Run the compiled app: **`node dist/index.js`** (run **`build`** first). |
-| `npm run mongo:dump` | Download a gzipped backup of the MongoDB database (manual; see [Database backup](#database-backup)). |
-| `npm run migrate:recipe-categories` | One-off migration script for recipe categories. |
+| `pnpm dev` | Run `src/index.ts` with **tsx** and watch mode (no `dist` build). |
+| `pnpm server` | Same entry with **nodemon** + **tsx** (restart on file changes). |
+| `pnpm build` | Compile TypeScript to **`dist/`** (`tsc`). |
+| `pnpm start` | Run the compiled app: **`node dist/index.js`** (run **`build`** first). |
+| `pnpm mongo:dump` | Download a gzipped backup of the MongoDB database (manual; see [Database backup](#database-backup)). |
+| `pnpm migrate:recipe-categories` | One-off migration script for recipe categories. |
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for a deeper walkthrough of the request lifecycle, auth flow, and data models.
 
@@ -49,7 +49,7 @@ Copy **`.env.example`** to **`.env`** and/or **`.env.local`** (local overrides t
 
 ## Database backup
 
-Manual backups use **`mongodump`** via **`npm run mongo:dump`**. The script reads **`MONGO_URI`** from the same **`.env`** files as the API and writes a timestamped archive under **`mongo-backups/`** (that folder is gitignored).
+Manual backups use **`mongodump`** via **`pnpm mongo:dump`**. The script reads **`MONGO_URI`** from the same **`.env`** files as the API and writes a timestamped archive under **`mongo-backups/`** (that folder is gitignored).
 
 ### Prerequisites
 
@@ -69,7 +69,7 @@ Manual backups use **`mongodump`** via **`npm run mongo:dump`**. The script read
 From the project root:
 
 ```bash
-npm run mongo:dump
+pnpm mongo:dump
 ```
 
 Example output file: **`mongo-backups/backup-2026-05-26T14-30-00.archive.gz`**.

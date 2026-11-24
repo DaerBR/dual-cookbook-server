@@ -152,8 +152,8 @@ logic.
 
 ## Dev workflow
 
-- `npm run dev` — `tsx watch`, no build step, instant restart on save.
-- `npm run build` doubles as the type-check (`tsc`, strict mode, plus `noUnusedLocals`,
+- `pnpm dev` — `tsx watch`, no build step, instant restart on save.
+- `pnpm build` doubles as the type-check (`tsc`, strict mode, plus `noUnusedLocals`,
   `noUnusedParameters`, `noImplicitReturns`) — there's no separate `tsc --noEmit` script.
 - `scripts/` (migration, import, mongo dump) run via `tsx` directly and are *excluded* from
   `tsconfig.json` — they're one-off tools, not part of the compiled app.

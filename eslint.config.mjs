@@ -1,6 +1,5 @@
 import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
 import prettierConfig from 'eslint-config-prettier';
 import globals from 'globals';
@@ -33,7 +32,7 @@ export default [
     files: ['src/**/*.ts', 'scripts/**/*.ts'],
 
     languageOptions: {
-      parser: tsparser,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module',
@@ -54,13 +53,13 @@ export default [
     },
 
     plugins: {
-      '@typescript-eslint': tseslint,
+      '@typescript-eslint': tseslint.plugin,
       import: importPlugin,
     },
 
     rules: {
       // ESLint recommended overrides
-      ...tseslint.configs.recommended.rules,
+      ...tseslint.plugin.configs.recommended.rules,
       '@typescript-eslint/no-empty-object-type': [
         'error',
         {

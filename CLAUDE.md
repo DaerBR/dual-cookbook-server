@@ -7,19 +7,21 @@ General working rules (git, scope, editing, tooling) live in the user-level `~/.
 ## Commands
 
 ```bash
-npm run dev          # Run with tsx watch (no build step; use during development)
-npm run server       # Same entry via nodemon (alternative watcher)
-npm run build        # Compile TypeScript → dist/
-npm start            # Run compiled dist/index.js (requires build first)
+pnpm dev             # Run with tsx watch (no build step; use during development)
+pnpm server          # Same entry via nodemon (alternative watcher)
+pnpm build           # Compile TypeScript → dist/
+pnpm start           # Run compiled dist/index.js (requires build first)
 
-npm run mongo:dump          # Gzipped mongodump → mongo-backups/
-npm run migrate:recipe-categories  # One-off migration script
-npm run migrate:recipe-title       # One-off migration script: recipes.name → recipes.recipeTitle
+pnpm mongo:dump                 # Gzipped mongodump → mongo-backups/
+pnpm migrate:recipe-categories  # One-off migration script
+pnpm migrate:recipe-title       # One-off migration script: recipes.name → recipes.recipeTitle
 ```
 
-No test suite exists yet. Type-check with `npm run build`.
+No test suite exists yet. Type-check with `pnpm build`.
 
-Format with Prettier: `npx prettier --write src/`.
+Format with Prettier: `pnpm exec prettier --write src/`.
+
+Package manager is **pnpm** (version pinned via `packageManager` in `package.json`, same as dual-cookbook-client). Deployed on Render.
 
 ## Architecture
 
