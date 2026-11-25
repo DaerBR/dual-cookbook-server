@@ -288,8 +288,10 @@ export const deleteRecipe = async (req: Request, res: Response): Promise<void> =
 export const getRecipeById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
+  // A malformed id can't match any recipe, so it's "not found" (404) rather than a bad request (400):
+  // the client redirects 404s to its not-found page, e.g. for a mistyped /recipe/<id> URL.
   if (!isValidObjectId(id)) {
-    jsonError(res, 400, 'Invalid recipe id');
+    jsonError(res, 404, 'Recipe not found');
 
     return;
   }

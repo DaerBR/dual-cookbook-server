@@ -305,9 +305,8 @@ export const getOpenApiDefinition = (): Record<string, unknown> => ({
               },
             },
           },
-          '400': { description: 'Invalid id' },
           '401': { description: 'Not authenticated' },
-          '404': { description: 'Not found' },
+          '404': { description: 'Not found (also for a malformed id)' },
         },
       },
       put: {
